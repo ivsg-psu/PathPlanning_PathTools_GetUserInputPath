@@ -3,7 +3,7 @@ function pathXY = fcn_pathtools_getUserInputPath(varargin)
 % A function for the user to click on the figure to generate XY path until
 % the user hits the "return" key.
 %
-% Format: 
+% FORMAT: 
 %
 %      pathXY = fcn_pathtools_getUserInputPath
 %
@@ -15,7 +15,7 @@ function pathXY = fcn_pathtools_getUserInputPath(varargin)
 %      pathXY: matrix (Nx2) representing the X and Y points that the user
 %      clicked on the map
 %
-% Examples:
+% EXAMPLES:
 %      
 %      % BASIC example
 %      pathXY = fcn_pathtools_getUserInputPath
