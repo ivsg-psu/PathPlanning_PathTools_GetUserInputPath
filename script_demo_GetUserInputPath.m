@@ -21,7 +21,16 @@
 % - In script_demo_GetUserInputPath
 %   % * First creation of the repo in standard form
 %   % * Added automatic release check section
+%
 % (new release)
+%
+% 2026_02_13 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Updated to support panning with mouse without interrupting point
+%   %   capture
+%
+% (new release)
+
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu

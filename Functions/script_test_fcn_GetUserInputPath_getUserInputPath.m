@@ -208,7 +208,7 @@ if 1==0
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
 
-	fcn_plotRoad_plotLL([],[],(figNum))
+	fcn_plotRoad_plotLL([],[],(figNum));
 
 	startingXY = [];
 	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));

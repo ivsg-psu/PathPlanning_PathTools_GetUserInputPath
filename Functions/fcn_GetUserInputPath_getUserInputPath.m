@@ -49,6 +49,11 @@ function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
 % - In fcn_GetUserInputPath_getUserInputPath
 %   % * Renamed function to library standard
 %   % * Modified to allow real-time plotting
+%
+% 2026_02_13 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Updated to support panning with mouse without interrupting point
+%   %   capture
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
@@ -169,7 +174,10 @@ end
 h_fig = figure(figNum);
 
 
-ax = gca; % axes('Parent',h_fig);
+ax = gca(figNum); % axes('Parent',h_fig);
+
+% Store state in figure appdata
+setappdata(figNum,'HoldPanState',struct('active',false,'startPoint',[0 0],'startXLim',[0 0],'startYLim',[0 0],'button',[]));
 
 if isempty(pathXY)
 	pathXY = [nan nan];
@@ -180,7 +188,8 @@ hPoints = plot(pathXY(:,1), pathXY(:,2), 'r.-','MarkerFaceColor','r','DisplayNam
 set(h_fig, ...
 	'WindowButtonDownFcn', @onClick, ...
 	'WindowKeyPressFcn', @onKey, ...
-	'WindowButtonMotionFcn', @onMouseMove);
+	'WindowButtonMotionFcn', @onMouseMove, ...
+	'WindowButtonUpFcn',   @onButtonUp);
 
 title('Click to add points. Right-click to insert a gap. Press (-) to remove prior point. Press Enter to finish.');
 
@@ -192,21 +201,35 @@ end
 	function onClick(~,~)
 		if ~ishandle(ax), return; end
 		sel = get(h_fig,'SelectionType');    % 'normal' left, 'alt' right, 'open' double
-		if strcmp(sel,'normal')           % only left-clicks add points
+		subtitle(sprintf('Sel: %s',sel));
+		if strcmp(sel,'normal')           % only left-clicks add points or pans
+
+			s = getappdata(figNum,'HoldPanState');
+			s.active = true;
+			s.button = sel;
+
+			% starting data point in axes coordinates
 			C = get(ax,'CurrentPoint');
-			x = C(1,1); y = C(1,2);
-			if all(isnan(pathXY),'all')
-				pathXY(1,:) = [x, y];
+			s.startPoint = C(1,1:2);
+			if isprop(ax,'LatitudeAxis') && isprop(ax,'LongitudeAxis')
+				[latlimOut,lonlimOut] = geolimits;
+				s.startXLim = lonlimOut;
+				s.startYLim = latlimOut;
 			else
-				pathXY(end+1,:) = [x y];         % append
+				s.startXLim = ax.XLim;
+				s.startYLim = ax.YLim;
 			end
-			set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
-			drawnow;                      % update immediately
+			setappdata(figNum,'HoldPanState',s);
+			
+			% enable motion callback
+			set(figNum,'WindowButtonMotionFcn',@onMouseMove);
+
 		elseif strcmp(sel,'alt')
 			pathXY(end+1,:) = [nan nan];         % append nan
 			set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
 			drawnow;                      % update immediately
 		else
+			% fprintf(1,'State is: %s\n',sel);
 			return;
 		end
 	end
@@ -214,6 +237,54 @@ end
 	function onMouseMove(~,~)
 		C = get (ax, 'CurrentPoint');
 		subtitle(['(X,Y) = (', num2str(C(1,1)), ', ',num2str(C(1,2)), ')']);
+
+		s = getappdata(figNum,'HoldPanState');
+        if ~s.active, return; end
+        cur = C(1,1:2);
+        dx = cur(1) - s.startPoint(1);
+		dy = cur(2) - s.startPoint(2);
+		% subtract dx/dy to move view with mouse drag (drag to the right moves view left)
+		if isprop(ax,'LatitudeAxis') && isprop(ax,'LongitudeAxis')
+			newLongitudeLimits = s.startXLim - dy;
+			newLatitudeLimits  = s.startYLim - dx;
+			geolimits(newLatitudeLimits,newLongitudeLimits);
+		else
+			ax.XLim = s.startXLim - dx;
+			ax.YLim = s.startYLim - dy;
+		end
+        drawnow limitrate;
+	end
+
+	function onButtonUp(~,~)
+		s = getappdata(figNum,'HoldPanState');
+		if s.active
+			s.active = false;
+			setappdata(figNum,'HoldPanState',s);
+			% set(figNum,'WindowButtonMotionFcn',[]); % disable motion callback
+		end
+
+		% Was a click detected
+		C = get(ax,'CurrentPoint');
+		x = C(1,1);
+		y = C(1,2);
+		positionChange = [x y] - s.startPoint;
+		absChange = norm(positionChange);
+
+		% For debugging
+		if 1==0
+			fprintf(1,'change was: %.6f\n',absChange);
+		end
+		
+		thresholdChange = eps;
+		if absChange<=thresholdChange
+			if all(isnan(pathXY),'all')
+				pathXY(1,:) = [x, y];
+			else
+				pathXY(end+1,:) = [x y];         % append
+			end
+			set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
+		end
+		drawnow;                      % update immediately
 	end
 
 	function onKey(~,event)
