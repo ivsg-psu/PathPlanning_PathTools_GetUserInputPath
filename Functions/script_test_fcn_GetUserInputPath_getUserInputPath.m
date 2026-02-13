@@ -200,6 +200,34 @@ if 1==0
 
 	% Make sure plot opened up
 	assert(isequal(get(gcf,'Number'),figNum));
+
+
+	%% DEMO case: testing with geoplot
+	figNum = 10004;
+	titleString = sprintf('DEMO case: testing with geoplot');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	fcn_plotRoad_plotLL([],[],(figNum))
+
+	startingXY = [];
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
+
+	% sgtitle(titleString, 'Interpreter','none');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+
+	% Check variable values
+	% User defined
+
+	% Make sure plot opened up
+	assert(isequal(get(gcf,'Number'),figNum));
+
 end
 
 %% Test cases start here. These are very simple, usually trivial

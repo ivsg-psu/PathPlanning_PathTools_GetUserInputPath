@@ -18,11 +18,14 @@
 % REVISION HISTORY:
 % 
 % 2026_02_12 by Sean Brennan, sbrennan@psu.edu
-% - First creation of the repo
+% - In script_demo_GetUserInputPath
+%   % * First creation of the repo
+%   % * Added automatic release check section
+
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
-%   % - Add motion blur model, maybe?
+%   % - Add items here
 
 %% Make sure we are running out of root directory
 st = dbstack; 
@@ -56,13 +59,11 @@ ith_repo = 0;
 % ith_repo = ith_repo+1;
 % dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_PathClassLibrary';
 % dependencySubfolders{ith_repo} = {'Functions','Data'};
-ith_repo = ith_repo+1;
-dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_GetUserInputPath';
-dependencySubfolders{ith_repo} = {''};
 
 ith_repo = ith_repo+1;
-dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_GetUserInputPath';
-dependencySubfolders{ith_repo} = {''};
+dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/FieldDataCollection_VisualizingFieldData_PlotRoad';
+dependencySubfolders{ith_repo} = {'Functions','Data'};
+
 
 % ith_repo = ith_repo+1;
 % dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/FieldDataCollection_VisualizingFieldData_PlotRoad';
