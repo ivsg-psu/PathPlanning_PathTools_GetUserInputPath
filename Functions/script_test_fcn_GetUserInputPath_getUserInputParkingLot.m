@@ -1,17 +1,17 @@
-% script_test_fcn_GetUserInputPath_getUserInputPath
+% script_test_fcn_GetUserInputPath_getUserInputParkingLot
 % This is a script to exercise the function:
-% fcn_GetUserInputPath_getUserInputPath.m
+% fcn_GetUserInputPath_getUserInputParkingLot.m
 %
 % This script was written on 2020_10_15 by S. Brennan
-% Questions or comments? sbrennan@psu.edu
+% Questions or comments? sbrennan@psu.edu 
 
 % REVISION HISTORY:
 %
-% As: script_test_fcn_GetUserInputPath_getUserInputPath
+% As: script_test_fcn_GetUserInputPath_getUserInputParkingLot
 %
 % 2020_10_15 by Sean Brennan, sbrennan@psu.edu
 % - wrote the code originally
-%
+% 
 % 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 % - standardized script format
 
@@ -49,8 +49,8 @@ if 1==0
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
 
-	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
+	fileNameLaneBoundaries = fullfile(pwd,'Data','parkingBoundaries_ReberParkingLot.mat');
+	pathXY = fcn_GetUserInputPath_getUserInputParkingLot( fileNameLaneBoundaries, (figNum));
 
 	% sgtitle(titleString, 'Interpreter','none');
 
@@ -75,7 +75,7 @@ if 1==0
 	figure(figNum); clf;
 
 	startingXY = rand(10,2);
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
+	pathXY = fcn_GetUserInputPath_getUserInputParkingLot((startingXY),(figNum));
 
 	% sgtitle(titleString, 'Interpreter','none');
 
@@ -184,7 +184,7 @@ if 1==0
 		0.5104    0.7253
 		NaN       NaN
 		];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
+	pathXY = fcn_GetUserInputPath_getUserInputParkingLot((startingXY),(figNum));
 
 	% sgtitle(titleString, 'Interpreter','none');
 
@@ -209,68 +209,9 @@ if 1==0
 	figure(figNum); clf;
 
 	fcn_plotRoad_plotLL([],[],(figNum));
-	set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
 
 	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
-
-	% sgtitle(titleString, 'Interpreter','none');
-
-	% Check variable types
-	assert(isnumeric(pathXY));
-
-	% Check variable sizes
-	assert(size(pathXY,1)>=1);
-	assert(size(pathXY,2)==2);
-
-	% Check variable values
-	% User defined
-
-	% Make sure plot opened up
-	assert(isequal(get(gcf,'Number'),figNum));
-
-	%% DEMO case: testing with geoplot
-	figNum = 10005;
-	titleString = sprintf('DEMO case: testing with geoplot');
-	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-	figure(figNum); clf;
-
-	LLAdata = [
-		40.380301927069773 -79.884128796856004
-		40.378814453783740 -79.886003667041678
-		40.378669382578792 -79.886219585568057
-		40.378433386792231 -79.886604483810743
-		40.378353699381059 -79.886780169071329
-		40.378136091096778 -79.887313930397440
-		40.377928699370855 -79.887838973249472
-		40.377836751959194 -79.888072325433768
-		40.377773410098470 -79.888193024839410
-		40.377716198258547 -79.888294948781976
-		40.377520043009973 -79.888603402818688
-		40.377489393700806 -79.888643635953898
-		40.377448524718410 -79.888706667865804
-		40.376353312922461 -79.887279732669882
-		40.376189846948471 -79.886737926448873
-		40.377142030673902 -79.885364635433248
-		40.376524951424727 -79.884527767603231
-		40.377505743164747 -79.883186643311959
-		40.378204549077431 -79.883926938612660
-		40.379258892424218 -79.883980584788716
-		40.380010826978442 -79.883723056518534
-		40.380301927069773 -79.884128796856004];
-
-	plotFormat.Marker = 'none';
-	plotFormat.MarkerSize = 10;
-	plotFormat.LineStyle = '-';
-	plotFormat.LineWidth = 3;
-	plotFormat.Color = [1 0 0];
-
-
-	fcn_plotRoad_plotLL(LLAdata, plotFormat,(figNum));
-	set(gca,'MapCenter',[40.378155494697360 -79.884093253372299],'ZoomLevel',17);
-
-	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
+	pathXY = fcn_GetUserInputPath_getUserInputParkingLot((startingXY),(figNum));
 
 	% sgtitle(titleString, 'Interpreter','none');
 
@@ -336,16 +277,16 @@ fprintf(1,'Figure: 8XXXXXX: FAST mode cases - none because this is a plotting fu
 % figNum = 80001;
 % fprintf(1,'Figure: %.0f: FAST mode, empty figNum\n',figNum);
 % figure(figNum); close(figNum);
-%
+% 
 % dataSetNumber = 9;
-%
-% % Load some test data
+% 
+% % Load some test data 
 % tempXYdata = fcn_INTERNAL_loadExampleData(dataSetNumber);
-%
+% 
 % start_definition = [10 3 0 0]; % Radius 10, 3 points must pass near [0,0]
 % end_definition = [30 3 0 -60]; % Radius 30, 3 points must pass near [0,-60]
 % excursion_definition = []; % empty
-%
+% 
 % [cell_array_of_lap_indices, ...
 %     cell_array_of_entry_indices, cell_array_of_exit_indices] = ...
 %     fcn_Laps_breakDataIntoLapIndices(...
@@ -354,48 +295,48 @@ fprintf(1,'Figure: 8XXXXXX: FAST mode cases - none because this is a plotting fu
 %     end_definition,...
 %     excursion_definition,...
 %     ([]));
-%
+% 
 % % Check variable types
 % assert(iscell(cell_array_of_lap_indices));
 % assert(iscell(cell_array_of_entry_indices));
 % assert(iscell(cell_array_of_exit_indices));
-%
+% 
 % % Check variable sizes
 % Nlaps = 3;
-% assert(isequal(Nlaps,length(cell_array_of_lap_indices)));
-% assert(isequal(Nlaps,length(cell_array_of_entry_indices)));
-% assert(isequal(Nlaps,length(cell_array_of_exit_indices)));
-%
+% assert(isequal(Nlaps,length(cell_array_of_lap_indices))); 
+% assert(isequal(Nlaps,length(cell_array_of_entry_indices))); 
+% assert(isequal(Nlaps,length(cell_array_of_exit_indices))); 
+% 
 % % Check variable values
 % % Are the laps starting at expected points?
 % assert(isequal(2,min(cell_array_of_lap_indices{1})));
 % assert(isequal(102,min(cell_array_of_lap_indices{2})));
 % assert(isequal(215,min(cell_array_of_lap_indices{3})));
-%
+% 
 % % Are the laps ending at expected points?
 % assert(isequal(88,max(cell_array_of_lap_indices{1})));
 % assert(isequal(199,max(cell_array_of_lap_indices{2})));
 % assert(isequal(293,max(cell_array_of_lap_indices{3})));
-%
+% 
 % % Make sure plot did NOT open up
 % figHandles = get(groot, 'Children');
 % assert(~any(figHandles==figNum));
-%
-%
+% 
+% 
 % %% Basic fast mode - NO FIGURE, FAST MODE
 % figNum = 80002;
 % fprintf(1,'Figure: %.0f: FAST mode, figNum=-1\n',figNum);
 % figure(figNum); close(figNum);
-%
+% 
 % dataSetNumber = 9;
-%
-% % Load some test data
+% 
+% % Load some test data 
 % tempXYdata = fcn_INTERNAL_loadExampleData(dataSetNumber);
-%
+% 
 % start_definition = [10 3 0 0]; % Radius 10, 3 points must pass near [0,0]
 % end_definition = [30 3 0 -60]; % Radius 30, 3 points must pass near [0,-60]
 % excursion_definition = []; % empty
-%
+% 
 % [cell_array_of_lap_indices, ...
 %     cell_array_of_entry_indices, cell_array_of_exit_indices] = ...
 %     fcn_Laps_breakDataIntoLapIndices(...
@@ -404,52 +345,52 @@ fprintf(1,'Figure: 8XXXXXX: FAST mode cases - none because this is a plotting fu
 %     end_definition,...
 %     excursion_definition,...
 %     (-1));
-%
+% 
 % % Check variable types
 % assert(iscell(cell_array_of_lap_indices));
 % assert(iscell(cell_array_of_entry_indices));
 % assert(iscell(cell_array_of_exit_indices));
-%
+% 
 % % Check variable sizes
 % Nlaps = 3;
-% assert(isequal(Nlaps,length(cell_array_of_lap_indices)));
-% assert(isequal(Nlaps,length(cell_array_of_entry_indices)));
-% assert(isequal(Nlaps,length(cell_array_of_exit_indices)));
-%
+% assert(isequal(Nlaps,length(cell_array_of_lap_indices))); 
+% assert(isequal(Nlaps,length(cell_array_of_entry_indices))); 
+% assert(isequal(Nlaps,length(cell_array_of_exit_indices))); 
+% 
 % % Check variable values
 % % Are the laps starting at expected points?
 % assert(isequal(2,min(cell_array_of_lap_indices{1})));
 % assert(isequal(102,min(cell_array_of_lap_indices{2})));
 % assert(isequal(215,min(cell_array_of_lap_indices{3})));
-%
+% 
 % % Are the laps ending at expected points?
 % assert(isequal(88,max(cell_array_of_lap_indices{1})));
 % assert(isequal(199,max(cell_array_of_lap_indices{2})));
 % assert(isequal(293,max(cell_array_of_lap_indices{3})));
-%
+% 
 % % Make sure plot did NOT open up
 % figHandles = get(groot, 'Children');
 % assert(~any(figHandles==figNum));
-%
-%
+% 
+% 
 % %% Compare speeds of pre-calculation versus post-calculation versus a fast variant
 % figNum = 80003;
 % fprintf(1,'Figure: %.0f: FAST mode comparisons\n',figNum);
 % figure(figNum);
 % close(figNum);
-%
+% 
 % dataSetNumber = 9;
-%
-% % Load some test data
+% 
+% % Load some test data 
 % tempXYdata = fcn_INTERNAL_loadExampleData(dataSetNumber);
-%
+% 
 % start_definition = [10 3 0 0]; % Radius 10, 3 points must pass near [0,0]
 % end_definition = [30 3 0 -60]; % Radius 30, 3 points must pass near [0,-60]
 % excursion_definition = []; % empty
-%
-%
+% 
+% 
 % Niterations = 50;
-%
+% 
 % % Do calculation without pre-calculation
 % tic;
 % for ith_test = 1:Niterations
@@ -464,7 +405,7 @@ fprintf(1,'Figure: 8XXXXXX: FAST mode cases - none because this is a plotting fu
 %         ([]));
 % end
 % slow_method = toc;
-%
+% 
 % % Do calculation with pre-calculation, FAST_MODE on
 % tic;
 % for ith_test = 1:Niterations
@@ -479,23 +420,23 @@ fprintf(1,'Figure: 8XXXXXX: FAST mode cases - none because this is a plotting fu
 %         (-1));
 % end
 % fast_method = toc;
-%
+% 
 % % Make sure plot did NOT open up
 % figHandles = get(groot, 'Children');
 % assert(~any(figHandles==figNum));
-%
+% 
 % % Plot results as bar chart
 % figure(373737);
 % clf;
 % hold on;
-%
+% 
 % X = categorical({'Normal mode','Fast mode'});
 % X = reordercats(X,{'Normal mode','Fast mode'}); % Forces bars to appear in this exact order, not alphabetized
 % Y = [slow_method fast_method ]*1000/Niterations;
 % bar(X,Y)
 % ylabel('Execution time (Milliseconds)')
-%
-%
+% 
+% 
 % % Make sure plot did NOT open up
 % figHandles = get(groot, 'Children');
 % assert(~any(figHandles==figNum));
@@ -517,12 +458,12 @@ fprintf(1,'Figure: 8XXXXXX: FAST mode cases - none because this is a plotting fu
 
 % close all;
 
-%% BUG
+%% BUG 
 
 %% Fail conditions
 if 1==0
-	%
-
+    %
+      
 end
 
 

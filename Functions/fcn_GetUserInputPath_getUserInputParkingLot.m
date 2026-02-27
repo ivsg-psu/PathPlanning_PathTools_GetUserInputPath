@@ -1,18 +1,20 @@
-function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
-% fcn_GetUserInputPath_getUserInputPath
-% A function for the user to click on the figure to generate XY path until
-% the user hits the "return" key. If the user right-clicks, it inserts a
-% [nan nan] row which effectively creates a gap in the plot. If the user
-% hits the "minus" or hyphen key, it removes the most recent point.
+function pathXY = fcn_GetUserInputPath_getUserInputParkingLot(fileNameLaneBoundaries, varargin)
+% fcn_GetUserInputPath_getUserInputParkingLot
+% A function for the user to click on the figure to generate XY definitions
+% of boundaries within a parking lot. The interface stays open until the
+% user hits the "return" key. If the user right-clicks, it inserts a [nan
+% nan] row which effectively creates a gap in the plot. If the user hits
+% the "minus" or hyphen key, it removes the most recent point.
 %
-% As an optional input, the function can start with a startingXY point
-% list, plotting this first.
 %
 % FORMAT: 
 %
-%      pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum))
+%      pathXY = fcn_GetUserInputPath_getUserInputParkingLot(fileNameLaneBoundaries, (figNum))
 %
 % INPUTS:
+%  
+%      fileNameLaneBoundaries: a string or char array containing the name
+%      of the file with all boundary information
 %
 %      (OPTIONAL INPUTS)
 %
@@ -29,9 +31,9 @@ function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
 % EXAMPLES:
 %      
 %      % BASIC example
-%      pathXY = fcn_GetUserInputPath_getUserInputPath
+%      pathXY = fcn_GetUserInputPath_getUserInputParkingLot
 % 
-% See the script: script_test_fcn_GetUserInputPath_getUserInputPath
+% See the script: script_test_fcn_GetUserInputPath_getUserInputParkingLot
 % for a full test suite.
 %
 % This function was written on 2020_10_15 by S. Brennan
@@ -54,10 +56,17 @@ function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
 % - In fcn_GetUserInputPath_getUserInputPath
 %   % * Updated to support panning with mouse without interrupting point
 %   %   capture
+%
+% As fcn_GetUserInputPath_getUserInputParkingLot
+%
+% 2026_02_26 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputParkingLot
+%   % * Created file from fcn_GetUserInputPath_getUserInputPath
+%
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
-%   % - Add motion blur model, maybe?
+%   % - (add items here)
 
 
 %% Debugging and Input checks
@@ -108,7 +117,7 @@ end
 if 0==flag_max_speed
 	if flag_check_inputs
 		% Are there the right number of inputs?
-		narginchk(0,MAX_NARGIN);
+		narginchk(1,MAX_NARGIN);
 
 		% validateattributes(L,{'numeric'},{'scalar','positive'});
 		% validateattributes(W,{'numeric'},{'scalar','positive'});
@@ -116,15 +125,15 @@ if 0==flag_max_speed
 
 	end
 end
-
-% Does the user want to specify the startingXY?
-pathXY = [];  % Default case
-if 1 <= nargin
-    temp = varargin{1};
-    if ~isempty(temp)
-		pathXY = temp;        
-    end
-end
+% 
+% % Does the user want to specify the startingXY?
+% pathXY = [];  % Default case
+% if 1 <= nargin
+%     temp = varargin{1};
+%     if ~isempty(temp)
+% 		pathXY = temp;        
+%     end
+% end
 
 % % Does the user want to specify the cornerShape?
 % cornerParams = [L/5 W/10]; % Default case
@@ -171,8 +180,86 @@ end
 %  |_|  |_|\__,_|_|_| |_|
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-h_fig = figure(figNum);
 
+cellArrayOfVariablesToLoad = { ...
+	'parkingLotOuterBoundaries',...
+	'pavedParkingSurfaceBoundaries',...
+	'unpavedParkingSurfaceBoundaries',...
+	'leftAndRightParkingStripes_physicalWhite', ...
+	'leftAndRightParkingStripes_physicalYellow', ...
+	'leftAndRightParkingStripes_physicalBlue', ... % Handicapped
+	'leftAndRightParkingStripes_physicalGreen', ... % Short term
+	'leftAndRightParkingStripes_implied', ...
+	'frontWheelStops_physical', ...
+	'frontWheelStops_implied', ...
+	'curbBoundaries_physical', ...
+	'curbBoundaries_implied', ...
+	'lowProfileObjects_physical', ...
+	'overheadObjects_physical', ...
+	'parkingStops_physical', ...
+	'parkingStops_implied', ...
+	'noParkingStripes_physical', ...
+	'noParkingStripes_implied', ...
+	'parkingRestricted_handicapped', ...
+	'parkingRestricted_special',...
+	'entranceBoundary_physical',...
+	'entranceBoundary_implied',...
+	'exitBoundary_physical',...
+	'exitBoundary_implied',...
+	'directionalArrows_physical',...
+	'directionalArrows_implied',...
+	'stopLines_physical',...
+	'stopLines_implied',...
+	'pedestrianCrosswalks_physical',...
+	'pedestrianCrosswalks_implied',...
+	'pedestrianSidewalk',...
+	'bicycleLane',...
+	'coloredCurbs_red',... % No parking, stopping, fire lanes, etc
+	'coloredCurbs_blue',... % Handicapped / disabled
+	'coloredCurbs_white',... % Loading, unloading, passenger pick-up
+	'coloredCurbs_yellow',... % Loading, unloading, passenger pick-up
+	'coloredCurbs_green',... % Short term parking
+	'speedBump_physical',... semicircular shape that extends across road
+	'speedHump_physical',... rectangular rise that extends across road
+	'speedHill_physical',... a bump that sticks out of the road
+	'speedBump_yellowMarking',... marking used to denote speed bump
+	'speedBump_whiteMarking',... marking used to denote speed bump
+	'bollards_temporary', ... % short thick posts designed to block vehicles
+	'bollards_permanent', ... % short thick posts designed to block vehicles
+	'lightingPoles', ... % location of lighting poles
+	'telephonePoles', ... % location of telephone poles
+	'buildingWallsAndPillars', ... % location of buildings/walls/pillars that limit parking
+	'cartCorrals', ... % location of areas designated for returning shopping carts
+	'tensionCables', ... % location of tension cables that impede vehicle motion
+	'twoWayLanes', ... % designation that lane is 2-way
+	'oneWayLanes', ... % designation that lane is 1-way
+	'blindSpots', ... % areas with sensor blockage (large signage, pillars, blockage, etc)
+	'surfaceHazards', ... % potholes, uneven pavement, ice/snow
+	'waterDrainsGrills', ... % grilled drain areas (difficult for handicapped, high heels, etc.)
+	'entryTicketKiosk',...
+	'exitTicketKiosk',...
+	'entryGates',...
+	'exitGates',...
+	'entryGarageDoor',...
+	'exitGarageDoor',...
+	'lowHeadrooms',...
+	'EVchargingStations',...
+	'loadingAndUnloadingZones',...
+	'curbRamps',... % for handicapped access
+	'mirrors',... % for seeing around corners
+	'lights',... % locations of lights
+	};
+
+if exist(fileNameLaneBoundaries,'file')
+	load(fileNameLaneBoundaries,cellArrayOfVariablesToLoad);
+else
+	boundariesReber = [];
+end
+
+%%%%%
+% Prep figure
+
+h_fig = figure(figNum);
 
 ax = gca(figNum); % axes('Parent',h_fig);
 
@@ -202,8 +289,6 @@ end
 		if ~ishandle(ax), return; end
 		sel = get(h_fig,'SelectionType');    % 'normal' left, 'alt' right, 'open' double
 		subtitle(sprintf('Sel: %s',sel));
-
-
 		if strcmp(sel,'normal')           % only left-clicks add points or pans
 
 			s = getappdata(figNum,'HoldPanState');
@@ -213,13 +298,6 @@ end
 			% starting data point in axes coordinates
 			C = get(ax,'CurrentPoint');
 			s.startPoint = C(1,1:2);
-
-			% Check to see if mouse click is on top of existing point
-
-
-
-
-			% Save current axis limits
 			if isprop(ax,'LatitudeAxis') && isprop(ax,'LongitudeAxis')
 				[latlimOut,lonlimOut] = geolimits;
 				s.startXLim = lonlimOut;
@@ -248,17 +326,10 @@ end
 		subtitle(['(X,Y) = (', num2str(C(1,1)), ', ',num2str(C(1,2)), ')']);
 
 		s = getappdata(figNum,'HoldPanState');
-
-		% Check to see if mouse is down (active). If not, do nothing.
         if ~s.active, return; end
-
-
-		% Must be in pan mode
         cur = C(1,1:2);
         dx = cur(1) - s.startPoint(1);
 		dy = cur(2) - s.startPoint(2);
-
-
 		% subtract dx/dy to move view with mouse drag (drag to the right moves view left)
 		if isprop(ax,'LatitudeAxis') && isprop(ax,'LongitudeAxis')
 			newLongitudeLimits = s.startXLim - dy;
@@ -268,8 +339,6 @@ end
 			ax.XLim = s.startXLim - dx;
 			ax.YLim = s.startYLim - dy;
 		end
-
-
         drawnow limitrate;
 	end
 
@@ -281,8 +350,7 @@ end
 			% set(figNum,'WindowButtonMotionFcn',[]); % disable motion callback
 		end
 
-		% Was a click detected? Compare current point to previous point to
-		% see if there was a change
+		% Was a click detected
 		C = get(ax,'CurrentPoint');
 		x = C(1,1);
 		y = C(1,2);
@@ -294,8 +362,6 @@ end
 			fprintf(1,'change was: %.6f\n',absChange);
 		end
 		
-
-		% If enter here, a click was detected
 		thresholdChange = eps;
 		if absChange<=thresholdChange
 			if all(isnan(pathXY),'all')
@@ -328,6 +394,9 @@ end
 			drawnow;                      % update immediately
 		end
 	end
+
+
+save(fileNameLaneBoundaries,'boundariesReber');
 
 %% Plot the results (for debugging)?
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
