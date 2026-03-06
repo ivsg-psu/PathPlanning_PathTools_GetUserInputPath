@@ -30,7 +30,16 @@
 %   %   capture
 %
 % (new release)
-
+%
+% 2026_03_06 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Updated to support point deletion
+%   % * Updated to support point insertion
+%   % * Updated to support click-to-drag of points
+%   % * Updated to support cling on legend to exit
+%   % * Forces close of the figure upon completion
+%
+% (new release)
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
@@ -65,9 +74,9 @@ end
 clear dependencyURLs dependencySubfolders
 ith_repo = 0;
 
-% ith_repo = ith_repo+1;
-% dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_PathClassLibrary';
-% dependencySubfolders{ith_repo} = {'Functions','Data'};
+ith_repo = ith_repo+1;
+dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/PathPlanning_PathTools_PathClassLibrary';
+dependencySubfolders{ith_repo} = {'Functions','Data'};
 
 ith_repo = ith_repo+1;
 dependencyURLs{ith_repo} = 'https://github.com/ivsg-psu/FieldDataCollection_VisualizingFieldData_PlotRoad';

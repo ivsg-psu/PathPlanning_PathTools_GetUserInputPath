@@ -64,8 +64,8 @@ if 1==0
 	% Check variable values
 	% User defined
 
-	% Make sure plot opened up
-	assert(isequal(get(gcf,'Number'),figNum));
+	% % Make sure plot opened up
+	% assert(isequal(get(gcf,'Number'),figNum));
 
 
 	%% DEMO case: starting with initial points
@@ -89,8 +89,8 @@ if 1==0
 	% Check variable values
 	% User defined
 
-	% Make sure plot opened up
-	assert(isequal(get(gcf,'Number'),figNum));
+	% % Make sure plot opened up
+	% assert(isequal(get(gcf,'Number'),figNum));
 
 	%% DEMO case: hello world
 	figNum = 10003;
@@ -198,8 +198,8 @@ if 1==0
 	% Check variable values
 	% User defined
 
-	% Make sure plot opened up
-	assert(isequal(get(gcf,'Number'),figNum));
+	% % Make sure plot opened up
+	% assert(isequal(get(gcf,'Number'),figNum));
 
 
 	%% DEMO case: testing with geoplot
@@ -226,12 +226,12 @@ if 1==0
 	% Check variable values
 	% User defined
 
-	% Make sure plot opened up
-	assert(isequal(get(gcf,'Number'),figNum));
+	% % Make sure plot opened up
+	% assert(isequal(get(gcf,'Number'),figNum));
 
-	%% DEMO case: testing with geoplot
+	%% DEMO case: testing with geoplot with previous data
 	figNum = 10005;
-	titleString = sprintf('DEMO case: testing with geoplot');
+	titleString = sprintf('DEMO case: testing with geoplot with previous data');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
 
@@ -266,10 +266,10 @@ if 1==0
 	plotFormat.Color = [1 0 0];
 
 
-	fcn_plotRoad_plotLL(LLAdata, plotFormat,(figNum));
+	fcn_plotRoad_plotLL([],[],figNum);
 	set(gca,'MapCenter',[40.378155494697360 -79.884093253372299],'ZoomLevel',17);
 
-	startingXY = [];
+	startingXY = LLAdata;
 	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
 
 	% sgtitle(titleString, 'Interpreter','none');
@@ -283,9 +283,9 @@ if 1==0
 
 	% Check variable values
 	% User defined
-
-	% Make sure plot opened up
-	assert(isequal(get(gcf,'Number'),figNum));
+	% 
+	% % Make sure plot opened up
+	% assert(isequal(get(gcf,'Number'),figNum));
 
 end
 
