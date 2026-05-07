@@ -10,7 +10,7 @@ function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
 %
 % FORMAT:
 %
-%      pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum))
+%      pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),(inputType),(patchCloseMode))
 %
 % INPUTS:
 %
@@ -73,7 +73,7 @@ function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
 % Check if flag_max_speed set. This occurs if the figNum variable input
 % argument (varargin) is given a number of -1, which is not a valid figure
 % number.
-MAX_NARGIN = 2; % The largest Number of argument inputs to the function
+MAX_NARGIN = 4; % The largest Number of argument inputs to the function
 flag_max_speed = 0; % The default. This runs code with all error checking
 if (nargin==MAX_NARGIN && isequal(varargin{end},-1))
 	flag_do_debug = 0; % Flag to plot the results for debugging
@@ -124,7 +124,6 @@ if 0==flag_max_speed
 
 	end
 end
-
 % Does the user want to specify the startingXY?
 pathXY = [];  % Default case
 if 1 <= nargin
@@ -134,31 +133,12 @@ if 1 <= nargin
 	end
 end
 
-% % Does the user want to specify the cornerShape?
-% cornerParams = [L/5 W/10]; % Default case
-% if 4 <= nargin
-%     temp = varargin{2};
-%     if ~isempty(temp)
-% 		cornerParams = temp;
-%     end
-% end
-%
-% % Does the user want to specify the NcornerPoints?
-% NcornerPoints = 20; % Default case
-% if 5 <= nargin
-%     temp = varargin{3};
-%     if ~isempty(temp)
-% 		NcornerPoints = temp;
-% 		validateattributes(NcornerPoints,{'numeric'},{'scalar','integer','>=',2});
-%     end
-% end
-
-% Does user want to show the plots?
-flag_do_plots = 1; % Default is to show plots
+% Does user want to specify the figure number?
 figNum = [];
-if (0==flag_max_speed) && (MAX_NARGIN == nargin)
-	temp = varargin{end};
-	if ~isempty(temp) % Did the user NOT give an empty figure number?
+flag_do_plots = 1; % Default is to show plots
+if 2 <= nargin
+	temp = varargin{2};
+	if ~isempty(temp)
 		figNum = temp;
 		flag_do_plots = 1;
 	end
@@ -168,6 +148,42 @@ if isempty(figNum)
 	temp = figure;
 	figNum = get(temp,'Number');
 end
+
+% Does the user want to specify the input type?
+% Options:
+%   'path'   - default, connected line segments
+%   'points' - points only, no lines
+%   'patch'  - closed polygon/patch
+inputType = 'path'; % default
+if 3 <= nargin
+	temp = varargin{3};
+	if ~isempty(temp)
+		inputType = lower(temp);
+	end
+end
+
+validInputTypes = {'path','points','patch'};
+if ~any(strcmp(inputType,validInputTypes))
+	error('inputType must be one of: path, points, or patch');
+end
+
+% Does the user want to specify how patches are closed?
+% Options:
+%   'ordered'               - connect points in click order and close last to first
+%   'nearest_free_endpoint' - connect open/free endpoints between subpaths
+patchCloseMode = 'ordered'; % default
+if 4 <= nargin
+	temp = varargin{4};
+	if ~isempty(temp)
+		patchCloseMode = lower(temp);
+	end
+end
+
+validPatchCloseModes = {'ordered','nearest_free_endpoint'};
+if ~any(strcmp(patchCloseMode,validPatchCloseModes))
+	error('patchCloseMode must be one of: ordered or nearest_free_endpoint');
+end
+
 
 %% Solve for the circle
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -179,6 +195,18 @@ end
 %  |_|  |_|\__,_|_|_| |_|
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Select input drawing type
+% Options:
+%   'path'
+%   'points'
+%   'patch'
+inputType = 'path';
+
+% Select patch closing mode
+% Options:
+%   'ordered'
+%   'nearest_free_endpoint'
+patchCloseMode = 'ordered';
 h_fig = figure(figNum);
 
 % For debuggin
@@ -200,8 +228,43 @@ end
 
 
 % Create a plot
-hPoints = plot(pathXY(:,1), pathXY(:,2), 'r.-','MarkerFaceColor','r','DisplayName','User selected points'); % marker handle
+% Create the user input drawing object
+switch inputType
+	case 'path'
+		hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+			'r.-', ...
+			'MarkerFaceColor','r', ...
+			'DisplayName','User selected path');
 
+	case 'points'
+		hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+			'r.', ...
+			'MarkerSize',20, ...
+			'DisplayName','User selected points');
+
+	case 'patch'
+		hPoints = patch('XData',pathXY(:,1), ...
+			'YData',pathXY(:,2), ...
+			'FaceColor','red', ...
+			'FaceAlpha',0.2, ...
+			'EdgeColor','red', ...
+			'LineWidth',1.5, ...
+			'Marker','.', ...
+			'MarkerFaceColor','red', ...
+			'DisplayName','User selected patch');
+
+	otherwise
+		error('Unknown inputType. Use path, points, or patch.');
+end
+% Freeze the axis limits so MATLAB does not auto-zoom when points are added
+if flag_isGeoPlot
+	[fixedLatLim, fixedLonLim] = geolimits;
+else
+	fixedXLim = ax.XLim;
+	fixedYLim = ax.YLim;
+	ax.XLimMode = 'manual';
+	ax.YLimMode = 'manual';
+end
 
 % Create the "exit" patch
 if flag_isGeoPlot
@@ -230,7 +293,39 @@ uiwait(figNum);    % block until uiresume or figure closed
 if ishandle(figNum)
 	% close(figNum); % optional: close after finishing
 end
+	function updateDrawing()
+		% Updates the drawing based on the selected inputType
 
+		switch inputType
+			case 'path'
+				set(hPoints, ...
+					'XData', pathXY(:,1), ...
+					'YData', pathXY(:,2));
+
+			case 'points'
+				set(hPoints, ...
+					'XData', pathXY(:,1), ...
+					'YData', pathXY(:,2));
+
+			case 'patch'
+				patchXY = fcn_INTERNAL_buildPatchPoints(pathXY, patchCloseMode);
+
+				if size(patchXY,1) >= 3
+					set(hPoints, ...
+						'XData', patchXY(:,1), ...
+						'YData', patchXY(:,2), ...
+						'FaceAlpha',0.2);
+				else
+					% Fewer than 3 valid points cannot make a filled patch.
+					set(hPoints, ...
+						'XData', patchXY(:,1), ...
+						'YData', patchXY(:,2), ...
+						'FaceAlpha',0);
+				end
+		end
+
+		drawnow;
+	end
 	function legendItemClicked(~, event)
 		s = getappdata(figNum,'HoldPanState');
 		s.legendClicked = true;
@@ -319,8 +414,7 @@ end
 
 		elseif strcmp(sel,'alt')
 			pathXY(end+1,:) = [nan nan];         % append nan
-			set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
-			drawnow;                      % update immediately
+			updateDrawing();                      % update immediately
 		else
 			% fprintf(1,'State is: %s\n',sel);
 			return;
@@ -370,7 +464,7 @@ end
 				pathXY(s.MoveIndex,:) = [newx newy];
 			end
 
-			set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
+			updateDrawing();
 		end
 
 		drawnow limitrate;
@@ -414,9 +508,8 @@ end
 			else
 				pathXY(end+1,:) = [x y];         % append
 			end
-			set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
+			updateDrawing();
 		end
-		drawnow;                      % update immediately
 	end
 
 	function onKey(~,event)
@@ -441,8 +534,7 @@ end
 				if isempty(pathXY)
 					pathXY = [nan nan];
 				end
-				set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
-				drawnow;                      % update immediately
+				updateDrawing();                    % update immediately
 
 			case 'i'     % Insert a new point
 
@@ -532,8 +624,7 @@ end
 					end
 				end
 
-				set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
-				drawnow;                      % update immediately
+				updateDrawing();                     % update immediately
 
 
 
@@ -566,8 +657,7 @@ end
 				% Remove it from the list
 				pathXY(closestIndex,:) = [];
 
-				set(hPoints, 'XData', pathXY(:,1), 'YData', pathXY(:,2));
-				drawnow;                      % update immediately
+				updateDrawing();                      % update immediately
 
 			otherwise
 				fprintf(1,'No action coded for keypress: %s\n',keyPress);
@@ -640,4 +730,131 @@ else
 	% Leave move index empty if not a click and drag
 	closestIndex = [];
 end
+end
+function patchXY = fcn_INTERNAL_buildPatchPoints(pathXY, patchCloseMode)
+% Builds the point order used to draw a patch.
+%
+% INPUTS:
+%   pathXY - Nx2 array of points. NaN rows separate open subpaths.
+%   patchCloseMode - either:
+%       'ordered'
+%       'nearest_free_endpoint'
+%
+% OUTPUTS:
+%   patchXY - ordered points to send to MATLAB patch
+
+% Remove completely empty case
+if isempty(pathXY)
+	patchXY = [];
+	return;
+end
+
+% Remove rows that are all NaN for ordered mode
+switch patchCloseMode
+	case 'ordered'
+		patchXY = pathXY(~any(isnan(pathXY),2),:);
+
+	case 'nearest_free_endpoint'
+		subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY);
+
+		if isempty(subPaths)
+			patchXY = [];
+			return;
+		end
+
+		% Start with the first available subpath
+		patchXY = subPaths{1};
+		subPaths(1) = [];
+
+		% Keep connecting the current free endpoint to the nearest
+		% free endpoint of any remaining subpath.
+		while ~isempty(subPaths)
+
+			currentEndPoint = patchXY(end,:);
+
+			bestDistanceSquared = inf;
+			bestSubPathIndex = 1;
+			bestOrientation = 'forward';
+
+			for ith_subpath = 1:length(subPaths)
+				thisSubPath = subPaths{ith_subpath};
+
+				thisStartPoint = thisSubPath(1,:);
+				thisEndPoint   = thisSubPath(end,:);
+
+				distanceToStartSquared = sum((currentEndPoint - thisStartPoint).^2);
+				distanceToEndSquared   = sum((currentEndPoint - thisEndPoint).^2);
+
+				if distanceToStartSquared < bestDistanceSquared
+					bestDistanceSquared = distanceToStartSquared;
+					bestSubPathIndex = ith_subpath;
+					bestOrientation = 'forward';
+				end
+
+				if distanceToEndSquared < bestDistanceSquared
+					bestDistanceSquared = distanceToEndSquared;
+					bestSubPathIndex = ith_subpath;
+					bestOrientation = 'reverse';
+				end
+			end
+
+			% Add the best matching subpath in the correct orientation
+			bestSubPath = subPaths{bestSubPathIndex};
+
+			if strcmp(bestOrientation,'forward')
+				patchXY = [patchXY; bestSubPath];
+			else
+				patchXY = [patchXY; flipud(bestSubPath)];
+			end
+
+			% Remove the subpath that was just used
+			subPaths(bestSubPathIndex) = [];
+		end
+
+	otherwise
+		error('Unknown patchCloseMode.');
+end
+
+end
+function subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY)
+% Splits pathXY into subpaths separated by NaN rows.
+%
+% Example:
+%   [0 0
+%    1 0
+%    NaN NaN
+%    1 1
+%    0 1]
+%
+% becomes:
+%   subPaths{1} = [0 0; 1 0]
+%   subPaths{2} = [1 1; 0 1]
+
+subPaths = {};
+
+if isempty(pathXY)
+	return;
+end
+
+nanRows = any(isnan(pathXY),2);
+
+currentSubPath = [];
+
+for ith_row = 1:size(pathXY,1)
+
+	if nanRows(ith_row)
+		if ~isempty(currentSubPath)
+			subPaths{end+1} = currentSubPath; %#ok<AGROW>
+			currentSubPath = [];
+		end
+	else
+		currentSubPath = [currentSubPath; pathXY(ith_row,:)]; %#ok<AGROW>
+	end
+end
+
+% Add final subpath if it exists
+if ~isempty(currentSubPath)
+	subPaths{end+1} = currentSubPath;
+end
+
 end
