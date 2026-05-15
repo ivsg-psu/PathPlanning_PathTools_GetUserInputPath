@@ -1,17 +1,39 @@
-function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
+function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin)
 % fcn_GetUserInputPath_getUserInputPath
-% A function for the user to click on the figure to generate XY path until
-% the user hits the "return" key. If the user right-clicks, it inserts a
-% [nan nan] row which effectively creates a gap in the plot. If the user
-% hits the "minus" or hyphen key, it removes the most recent point.
+%
+% A function for the user to click on the figure to generate XY user input
+% until the user hits the "return" key. The function supports different
+% drawing/input styles through the optional inputType argument:
+%
+%   'path'   - default behavior. The user-selected points are displayed as
+%              connected line segments.
+%
+%   'points' - the user-selected points are displayed as individual points
+%              without connecting line segments.
+%
+%   'patch'  - the user-selected points are displayed as a closed patch.
+%              When at least 3 valid points are available, the patch is
+%              drawn by connecting the selected points in order. If fewer
+%              than 3 valid points are available, the input is displayed
+%              like a path so the user can still see the selected points.
+%
+% If the user right-clicks, the function inserts a [nan nan] row, which
+% effectively creates a gap in the plotted path. If the user hits the
+% "minus" or hyphen key, it removes the most recent point.
+%
+% In 'path' mode, pressing the 'c' key toggles a visual closure of separated
+% subpaths by connecting nearest available free endpoints. This closure does
+% not modify the returned pathXY. If requested as a second output, the closed
+% boundary is returned as closedAreaXY.
 %
 % As an optional input, the function can start with a startingXY point
 % list, plotting this first.
 %
 % FORMAT:
 %
-%      pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),(inputType),(patchCloseMode))
-%
+%      [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),(inputType),(patchCloseMode))
+% 
+% 
 % INPUTS:
 %
 %      (OPTIONAL INPUTS)
@@ -22,19 +44,57 @@ function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
 %      skips any input checking or debugging, no figures will be generated,
 %      and sets up code to maximize speed.
 %
+%      inputType - string specifying the drawing/input style. Options are:
+%                  'path'   - default. Displays selected points as connected
+%                             line segments.
+%                  'points' - displays selected points only, without
+%                             connecting line segments.
+%                  'patch'  - displays selected points as a closed patch.
+%
+%      patchCloseMode - string specifying how patch points are ordered before
+%                       drawing. Options are:
+%                       'ordered' - default. Uses the user click order and
+%                                   closes the patch by connecting the last
+%                                   point back to the first point.
+%
+%                       'nearest_free_endpoint' - Should separate the input into
+%                                   subpaths using [nan nan] rows and orders
+%                                   the subpaths by connecting the nearest
+%                                   available free endpoints.
+%
+
 % OUTPUTS:
 %      pathXY: matrix (Nx2) representing the X and Y points that the user
-%      clicked on the map
+%      clicked on the map.
 %
-% EXAMPLES:
+%      closedAreaXY: matrix (Mx2) representing the closed area generated
+%      from path subpaths when the user presses the 'c' key in path mode.
+%      This output is empty if no closed area is generated.
 %
-%      % BASIC example
+% 
+%  EXAMPLES:
+%
+%      % BASIC example using default path mode
 %      pathXY = fcn_GetUserInputPath_getUserInputPath
+%
+%      % Example using path mode explicitly
+%      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'path')
+%
+%      % Example using points mode
+%      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'points')
+%
+%      % Example using patch mode with ordered point connection
+%      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'patch', 'ordered')
+%
+%      % Example using patch mode with nearest free endpoint ordering
+%      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'patch', 'nearest_free_endpoint')
+%
 %
 % See the script: script_test_fcn_GetUserInputPath_getUserInputPath
 % for a full test suite.
 %
 % This function was written on 2020_10_15 by S. Brennan
+% This function was edited on 2026_05_15 by Jaime Rodriguez
 % Questions or comments? sbrennan@psu.edu
 
 % REVISION HISTORY:
@@ -63,6 +123,37 @@ function pathXY = fcn_GetUserInputPath_getUserInputPath(varargin)
 %   % * Updated to support cling on legend to exit
 %   % * Forces close of the figure upon completion
 
+%
+% 2026_05_15 by Jaime Rodriguez
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added inputType optional argument to support multiple drawing modes:
+%   %   'path', 'points', and 'patch'.
+%   % * Preserved 'path' as the default behavior, where user-selected points
+%   %   are displayed as connected line segments.
+%   % * Added 'points' mode, where user-selected points are displayed as
+%   %   individual markers without connecting line segments.
+%   % * Added 'patch' mode, where user-selected points are displayed as a
+%   %   closed patch.
+%   % * Updated patch display behavior so that, when fewer than 3 valid
+%   %   points are available, the selected points are displayed like a path
+%   %   instead of an empty patch.
+%   % * Added patchCloseMode optional argument to control patch point ordering.
+%   % * Added 'ordered' patch close mode, where patch points follow the user
+%   %   click order and the last point is connected back to the first point.
+%   % * Added 'nearest_free_endpoint' patch close mode, where paths separated
+%   %   by [nan nan] rows are ordered by connecting nearest available free
+%   %   endpoints.
+%   % * Added fcn_INTERNAL_buildPatchPoints helper function to prepare patch
+%   %   display points.
+%   % * Added fcn_INTERNAL_splitPathByNaNs helper function to split user input
+%   %   paths into subpaths separated by [nan nan] rows.
+%   % * Added updateDrawing internal function to centralize display updates
+%   %   across path, points, and patch modes.
+%   % * Added manual axis-limit mode after creating the drawing object to help
+%   %   prevent MATLAB from auto-zooming when points are added.
+%   % * Added 'c' key command in path mode to visually close separated
+%   %   subpaths by connecting nearest available free endpoints without
+%   %   modifying the returned pathXY.
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 %   % - Add motion blur model, maybe?
@@ -126,6 +217,8 @@ if 0==flag_max_speed
 end
 % Does the user want to specify the startingXY?
 pathXY = [];  % Default case
+closedAreaXY = []; % Stores the closed area generated from path mode
+
 if 1 <= nargin
 	temp = varargin{1};
 	if ~isempty(temp)
@@ -195,18 +288,11 @@ end
 %  |_|  |_|\__,_|_|_| |_|
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Select input drawing type
-% Options:
-%   'path'
-%   'points'
-%   'patch'
-inputType = 'path';
 
-% Select patch closing mode
-% Options:
-%   'ordered'
-%   'nearest_free_endpoint'
-patchCloseMode = 'ordered';
+% Controls whether path subpaths are visually closed by connecting
+% nearest free endpoints. This does not modify pathXY.
+flag_closePathByFreeEndpoints = false;
+
 h_fig = figure(figNum);
 
 % For debuggin
@@ -286,8 +372,8 @@ set(h_fig, ...
 	'WindowButtonMotionFcn', @onMouseMove, ...
 	'WindowButtonUpFcn',   @onButtonUp);
 
-title({'Click to add points. Right-click to inserts gap. Click-drag to shift point or move axis.','(-) removes prior point. (d) deletes closest point. (i) inserts point. Press Enter to finish.'});
-
+title({'Click to add points. Right-click inserts gap. Click-drag shifts point or moves axis.', ...
+	'(-) removes prior point. (d) deletes closest point. (i) inserts point. (c) closes path. Press Enter to finish.'});
 
 uiwait(figNum);    % block until uiresume or figure closed
 if ishandle(figNum)
@@ -297,10 +383,20 @@ end
 		% Updates the drawing based on the selected inputType
 
 		switch inputType
-			case 'path'
-				set(hPoints, ...
-					'XData', pathXY(:,1), ...
-					'YData', pathXY(:,2));
+            case 'path'
+	if flag_closePathByFreeEndpoints && ~isempty(closedAreaXY) && size(closedAreaXY,1) >= 3
+		% Display the stored closed area as a closed outline
+		displayXY = [
+			closedAreaXY
+			closedAreaXY(1,:)
+		];
+	else
+		displayXY = pathXY;
+	end
+
+	set(hPoints, ...
+		'XData', displayXY(:,1), ...
+		'YData', displayXY(:,2));
 
 			case 'points'
 				set(hPoints, ...
@@ -308,21 +404,26 @@ end
 					'YData', pathXY(:,2));
 
 			case 'patch'
-				patchXY = fcn_INTERNAL_buildPatchPoints(pathXY, patchCloseMode);
+	patchXY = fcn_INTERNAL_buildPatchPoints(pathXY, patchCloseMode);
 
-				if size(patchXY,1) >= 3
-					set(hPoints, ...
-						'XData', patchXY(:,1), ...
-						'YData', patchXY(:,2), ...
-						'FaceAlpha',0.2);
-				else
-					% Fewer than 3 valid points cannot make a filled patch.
-					set(hPoints, ...
-						'XData', patchXY(:,1), ...
-						'YData', patchXY(:,2), ...
-						'FaceAlpha',0);
-				end
-		end
+	if size(patchXY,1) >= 3
+		set(hPoints, ...
+			'XData', patchXY(:,1), ...
+			'YData', patchXY(:,2), ...
+			'FaceAlpha',0.2, ...
+			'LineStyle','-', ...
+			'Marker','.');
+	else
+		% With fewer than 3 valid points, display the selected points
+		% like a path so the user can see what is being clicked.
+		set(hPoints, ...
+			'XData', patchXY(:,1), ...
+			'YData', patchXY(:,2), ...
+			'FaceAlpha',0, ...
+			'LineStyle','-', ...
+			'Marker','.');
+    end
+        end
 
 		drawnow;
 	end
@@ -526,6 +627,33 @@ end
 				% disp(pts);
 				% uiresume(h_fig);               % optional: resume if waiting
 				% close(h_fig);                  % optional: close figure
+
+        	case 'c' % Toggle closing path using nearest free endpoints
+	if strcmp(inputType,'path')
+
+		flag_closePathByFreeEndpoints = ~flag_closePathByFreeEndpoints;
+
+		if flag_closePathByFreeEndpoints
+			% Build and store the closed area from separated subpaths
+			closedAreaXY = fcn_INTERNAL_buildClosedAreaFromPath(pathXY);
+
+			if size(closedAreaXY,1) < 3
+				fprintf(1,'Not enough valid points to create a closed area.\n');
+				closedAreaXY = [];
+				flag_closePathByFreeEndpoints = false;
+			else
+				fprintf(1,'Path free-endpoint closure is ON. closedAreaXY has been updated.\n');
+			end
+		else
+			closedAreaXY = [];
+			fprintf(1,'Path free-endpoint closure is OFF. closedAreaXY has been cleared.\n');
+		end
+
+		updateDrawing();
+
+	else
+		fprintf(1,'Close command is only active in path mode.\n');
+	end
 
 			case 'hyphen' % Removes the last point
 				if size(pathXY,1)>0
@@ -731,6 +859,7 @@ else
 	closestIndex = [];
 end
 end
+
 function patchXY = fcn_INTERNAL_buildPatchPoints(pathXY, patchCloseMode)
 % Builds the point order used to draw a patch.
 %
@@ -816,6 +945,7 @@ switch patchCloseMode
 end
 
 end
+
 function subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY)
 % Splits pathXY into subpaths separated by NaN rows.
 %
@@ -855,6 +985,269 @@ end
 % Add final subpath if it exists
 if ~isempty(currentSubPath)
 	subPaths{end+1} = currentSubPath;
+end
+
+end
+
+function displayXY = fcn_INTERNAL_buildClosedPathDisplayPoints(pathXY, flag_closePathByFreeEndpoints)
+% Builds display points for path mode.
+%
+% If flag_closePathByFreeEndpoints is false:
+%   displayXY = pathXY
+%
+% If flag_closePathByFreeEndpoints is true:
+%   the function detects free endpoints of subpaths separated by [nan nan]
+%   rows and connects the closest endpoint pairs. Each endpoint is used
+%   only once. Connections are only made between different subpaths.
+%
+% This function does not modify the original pathXY.
+
+if isempty(pathXY)
+	displayXY = pathXY;
+	return;
+end
+
+% If closure is off, display the original path exactly as stored
+if ~flag_closePathByFreeEndpoints
+	displayXY = pathXY;
+	return;
+end
+
+% Split path into subpaths separated by NaN rows
+subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY);
+
+if isempty(subPaths)
+	displayXY = pathXY;
+	return;
+end
+
+% Start by drawing the original path exactly as stored
+displayXY = pathXY;
+
+% Collect free endpoints.
+% Each subpath contributes two free endpoints:
+%   - first point
+%   - last point
+freeEndpoints = [];
+endpointSubPathIndex = [];
+
+for ith_subpath = 1:length(subPaths)
+
+	thisSubPath = subPaths{ith_subpath};
+
+	if isempty(thisSubPath)
+		continue;
+	end
+
+	% First endpoint of this subpath
+	freeEndpoints = [
+		freeEndpoints
+		thisSubPath(1,:)
+	];
+
+	endpointSubPathIndex = [
+		endpointSubPathIndex
+		ith_subpath
+	];
+
+	% Last endpoint of this subpath
+	freeEndpoints = [
+		freeEndpoints
+		thisSubPath(end,:)
+	];
+
+	endpointSubPathIndex = [
+		endpointSubPathIndex
+		ith_subpath
+	];
+end
+
+Nendpoints = size(freeEndpoints,1);
+
+% If fewer than 2 free endpoints exist, no connection can be made
+if Nendpoints < 2
+	return;
+end
+
+usedEndpoint = false(Nendpoints,1);
+closureSegments = [];
+
+while sum(~usedEndpoint) >= 2
+
+	bestDistanceSquared = inf;
+	best_i = [];
+	best_j = [];
+
+	for i = 1:Nendpoints
+
+		if usedEndpoint(i)
+			continue;
+		end
+
+		for j = i+1:Nendpoints
+
+			if usedEndpoint(j)
+				continue;
+			end
+
+			% Do not connect endpoints from the same subpath.
+			% This prevents closing each individual subpath by itself.
+			if endpointSubPathIndex(i) == endpointSubPathIndex(j)
+				continue;
+			end
+
+			thisDistanceSquared = sum((freeEndpoints(i,:) - freeEndpoints(j,:)).^2);
+
+			if thisDistanceSquared < bestDistanceSquared
+				bestDistanceSquared = thisDistanceSquared;
+				best_i = i;
+				best_j = j;
+			end
+		end
+	end
+
+	% If no valid pair was found, stop
+	if isempty(best_i) || isempty(best_j)
+		break;
+	end
+
+	% Add one visual connection segment.
+	% NaN NaN prevents MATLAB from connecting this segment to unrelated
+	% previous points.
+	closureSegments = [
+		closureSegments
+		NaN NaN
+		freeEndpoints(best_i,:)
+		freeEndpoints(best_j,:)
+	];
+
+	% Mark both endpoints as used so each one is connected only once
+	usedEndpoint(best_i) = true;
+	usedEndpoint(best_j) = true;
+end
+
+% Add visual closure segments to the original display path
+displayXY = [
+	displayXY
+	closureSegments
+];
+
+end
+
+function closedAreaXY = fcn_INTERNAL_buildClosedAreaFromPath(pathXY)
+% Builds a closed area from path subpaths separated by NaN rows.
+%
+% The function connects nearest available free endpoints between different
+% subpaths and returns an ordered closed boundary.
+%
+% This does not modify the original pathXY.
+
+closedAreaXY = [];
+
+if isempty(pathXY)
+	return;
+end
+
+% Split path into subpaths separated by NaN rows
+subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY);
+
+if isempty(subPaths)
+	return;
+end
+
+% If there is only one subpath, use it directly if it has enough points.
+% It will be visually closed by repeating the first point during plotting.
+if length(subPaths) == 1
+	thisSubPath = subPaths{1};
+
+	if size(thisSubPath,1) >= 3
+		closedAreaXY = thisSubPath;
+	end
+
+	return;
+end
+
+% Special case: two subpaths.
+% This is the most common case for closing an area from two open boundaries.
+if length(subPaths) == 2
+	pathA = subPaths{1};
+	pathB = subPaths{2};
+
+	A_start = pathA(1,:);
+	A_end   = pathA(end,:);
+
+	B_start = pathB(1,:);
+	B_end   = pathB(end,:);
+
+	% Option 1:
+	% pathA followed by pathB
+	% closure distances: A_end -> B_start and B_end -> A_start
+	totalDistance_forward = ...
+		sum((A_end - B_start).^2) + ...
+		sum((B_end - A_start).^2);
+
+	% Option 2:
+	% pathA followed by reversed pathB
+	% closure distances: A_end -> B_end and B_start -> A_start
+	totalDistance_reverse = ...
+		sum((A_end - B_end).^2) + ...
+		sum((B_start - A_start).^2);
+
+	if totalDistance_forward <= totalDistance_reverse
+		closedAreaXY = [pathA; pathB];
+	else
+		closedAreaXY = [pathA; flipud(pathB)];
+	end
+
+	return;
+end
+
+% General case: more than two subpaths.
+% Greedily append the subpath whose free endpoint is closest to the current
+% end point.
+closedAreaXY = subPaths{1};
+subPaths(1) = [];
+
+while ~isempty(subPaths)
+
+	currentEndPoint = closedAreaXY(end,:);
+
+	bestDistanceSquared = inf;
+	bestSubPathIndex = [];
+	bestOrientation = 'forward';
+
+	for ith_subpath = 1:length(subPaths)
+
+		thisSubPath = subPaths{ith_subpath};
+
+		thisStart = thisSubPath(1,:);
+		thisEnd   = thisSubPath(end,:);
+
+		distanceToStart = sum((currentEndPoint - thisStart).^2);
+		distanceToEnd   = sum((currentEndPoint - thisEnd).^2);
+
+		if distanceToStart < bestDistanceSquared
+			bestDistanceSquared = distanceToStart;
+			bestSubPathIndex = ith_subpath;
+			bestOrientation = 'forward';
+		end
+
+		if distanceToEnd < bestDistanceSquared
+			bestDistanceSquared = distanceToEnd;
+			bestSubPathIndex = ith_subpath;
+			bestOrientation = 'reverse';
+		end
+	end
+
+	bestSubPath = subPaths{bestSubPathIndex};
+
+	if strcmp(bestOrientation,'forward')
+		closedAreaXY = [closedAreaXY; bestSubPath];
+	else
+		closedAreaXY = [closedAreaXY; flipud(bestSubPath)];
+	end
+
+	subPaths(bestSubPathIndex) = [];
 end
 
 end

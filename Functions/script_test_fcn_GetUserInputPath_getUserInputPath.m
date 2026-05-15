@@ -14,6 +14,19 @@
 %
 % 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 % - standardized script format
+%
+% 2026_05_15 by Jaime Rodriguez
+% - Added interactive demo cases for the new inputType argument:
+%   'path', 'points', and 'patch'.
+% - Added interactive demo cases for patchCloseMode:
+%   'ordered' and 'nearest_free_endpoint'.
+% - Added fail-condition tests for invalid inputType and invalid
+%   patchCloseMode inputs.
+% Updated the test script to match the new function signature by adding interactive
+% demo cases for the new inputType argument and patchCloseMode argument. 
+% The script now includes demos for path, points, patch with ordered close mode, 
+% patch with nearest_free_endpoint close mode, and patch mode with fewer than 3 points. 
+% Also added fail-condition tests for invalid inputType and invalid patchCloseMode values.
 
 % TO-DO:
 %
@@ -52,8 +65,6 @@ if 1==0
 	startingXY = [];
 	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum));
 
-	% sgtitle(titleString, 'Interpreter','none');
-
 	% Check variable types
 	assert(isnumeric(pathXY));
 
@@ -66,6 +77,100 @@ if 1==0
 
 	% % Make sure plot opened up
 	% assert(isequal(get(gcf,'Number'),figNum));
+
+	%% DEMO case: explicit path inputType
+	figNum = 10006;
+	titleString = sprintf('DEMO case: explicit path inputType');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	startingXY = [];
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'path');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);    
+
+    
+    	%% DEMO case: points inputType
+	figNum = 10007;
+	titleString = sprintf('DEMO case: points inputType');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	startingXY = [];
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'points');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+
+    	%% DEMO case: patch inputType with ordered patchCloseMode
+	figNum = 10008;
+	titleString = sprintf('DEMO case: patch inputType with ordered patchCloseMode');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	startingXY = [];
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+    
+ 	%% DEMO case: patch inputType with nearest_free_endpoint patchCloseMode
+	figNum = 10009;
+	titleString = sprintf('DEMO case: patch inputType with nearest_free_endpoint patchCloseMode');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	startingXY = [
+		0 0
+		1 0
+		2 0
+		NaN NaN
+		2 1
+		1 1
+		0 1
+		];
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','nearest_free_endpoint');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+
+ 	%% DEMO case: patch inputType with fewer than 3 points
+	figNum = 10010;
+	titleString = sprintf('DEMO case: patch inputType with fewer than 3 points');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	startingXY = [
+		0 0
+		1 1
+		];
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
 
 
 	%% DEMO case: starting with initial points
@@ -304,9 +409,39 @@ end
 % See: https://patorjk.com/software/taag/#p=display&f=Big&t=TESTS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Figures start with 2
+%% TEST case: invalid inputType throws error
+figNum = 20002;
+titleString = sprintf('TEST case: invalid inputType throws error');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
 
+startingXY = [];
+
+try
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'invalid_input_type');
+	error('Test failed: invalid inputType did not throw an error.');
+catch ME
+	assert(contains(ME.message,'inputType must be one of'));
+end
+close(figNum);
 close all;
 fprintf(1,'Figure: 2XXXXXX: TEST mode cases\n');
+
+%% TEST case: invalid patchCloseMode throws error
+figNum = 20003;
+titleString = sprintf('TEST case: invalid patchCloseMode throws error');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+startingXY = [];
+
+try
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','invalid_patch_close_mode');
+	error('Test failed: invalid patchCloseMode did not throw an error.');
+catch ME
+	assert(contains(ME.message,'patchCloseMode must be one of'));
+end
+close(figNum);
 
 %% TEST case: This one returns nothing since there is no portion of the path in criteria
 figNum = 20001;
