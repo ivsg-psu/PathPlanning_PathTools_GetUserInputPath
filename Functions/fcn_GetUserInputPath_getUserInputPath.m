@@ -154,6 +154,8 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   % * Added 'c' key command in path mode to visually close separated
 %   %   subpaths by connecting nearest available free endpoints without
 %   %   modifying the returned pathXY.
+
+
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 %   % - Add motion blur model, maybe?

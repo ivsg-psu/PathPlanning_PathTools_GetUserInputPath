@@ -16,22 +16,42 @@
 % - standardized script format
 %
 % 2026_05_15 by Jaime Rodriguez
-% - Added interactive demo cases for the new inputType argument:
-%   'path', 'points', and 'patch'.
-% - Added interactive demo cases for patchCloseMode:
-%   'ordered' and 'nearest_free_endpoint'.
-% - Added fail-condition tests for invalid inputType and invalid
-%   patchCloseMode inputs.
-% Updated the test script to match the new function signature by adding interactive
-% demo cases for the new inputType argument and patchCloseMode argument. 
-% The script now includes demos for path, points, patch with ordered close mode, 
-% patch with nearest_free_endpoint close mode, and patch mode with fewer than 3 points. 
-% Also added fail-condition tests for invalid inputType and invalid patchCloseMode values.
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * Added interactive demo cases for the new inputType argument:
+%   %   % 'path', 'points', and 'patch'.
+%   % * Added interactive demo cases for patchCloseMode:
+%   %   % 'ordered' and 'nearest_free_endpoint'.
+%   % * Added fail-condition tests for invalid inputType and invalid
+%   %   % patchCloseMode inputs.
+%   % * Updated the test script to match the new function signature by adding interactive
+%   %   % demo cases for the new inputType argument and patchCloseMode argument. 
+%   % * The script now includes demos for path, points, patch with ordered close mode, 
+%   %   % patch with nearest_free_endpoint close mode, and patch mode with fewer than 3 points. 
+%   % * Added fail-condition tests for invalid inputType and invalid
+%   %   % patchCloseMode values. 
 
 % TO-DO:
 %
-% 2026_02_12 by Sean Brennan, sbrennan@psu.edu
-% - (fill in items here)
+% 2026_05_18 by Sean Brennan, sbrennan@psu.edu
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * In the path mode, if someone clicks "c", the code does not let user
+% continue making additional path inputs. After presssing "c", "d", "i",
+% "-" do not work anymore (see for example Demo 10006)
+%   % * Pressing "c" adds a comment "Path free-endpoint closure is ON" There
+% should be no comments when using this function because this function is
+% almost always called from inside other functions that are printing to the
+% screen. So there should be no print statements to the screen
+%   % * In patch mode, the right click does not allow the user to start another
+% patch. Each click just creates more points in prior patch
+%   % * Seems we need "AABB" mode where user clicks 2 points and the code
+% returns the AABB, and makes a box showing the AABB. This one is a bit
+% tricky since the user can enter any 2 corners so code will have to ID
+% lowest XY and highest XY, and the definition of lowest and highest may
+% change depending on whether in normal axis mode or geographic axes.
+%   % * Modes ("patch", "points", etc.) need to be tested with GeographicAxes
+% (geoplots). See for example test 20004. Calling a patch mode with
+% geographic axes fails even without openining.
+
 
 
 %% Set up the workspace
@@ -55,6 +75,7 @@ close all
 close all;
 fprintf(1,'Figure: 1XXXXXX: DEMO cases - all are interactive so commented out\n');
 
+% Commented out since automatic testing will not work with manual inputs
 if 1==0
 	%% DEMO case: basic example
 	figNum = 10001;
@@ -408,46 +429,72 @@ end
 %
 % See: https://patorjk.com/software/taag/#p=display&f=Big&t=TESTS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Figures start with 2
-%% TEST case: invalid inputType throws error
-figNum = 20002;
-titleString = sprintf('TEST case: invalid inputType throws error');
-fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-figure(figNum); clf;
+% Test figures start with 2
 
-startingXY = [];
+% Commented out since automatic testing will not work with manual inputs
+if 1==0
 
-try
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'invalid_input_type');
-	error('Test failed: invalid inputType did not throw an error.');
-catch ME
-	assert(contains(ME.message,'inputType must be one of'));
+    %% TEST case: invalid inputType throws error
+    figNum = 20002;
+    titleString = sprintf('TEST case: invalid inputType throws error');
+    fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+    figure(figNum); clf;
+
+    startingXY = [];
+
+    try
+    	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'invalid_input_type');
+    	error('Test failed: invalid inputType did not throw an error.');
+    catch ME
+    	assert(contains(ME.message,'inputType must be one of'));
+    end
+    close(figNum);
+    close all;
+    fprintf(1,'Figure: 2XXXXXX: TEST mode cases\n');
+
+    %% TEST case: invalid patchCloseMode throws error
+    figNum = 20003;
+    titleString = sprintf('TEST case: invalid patchCloseMode throws error');
+    fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+    figure(figNum); clf;
+
+    startingXY = [];
+
+    try
+    	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','invalid_patch_close_mode');
+    	error('Test failed: invalid patchCloseMode did not throw an error.');
+    catch ME
+    	assert(contains(ME.message,'patchCloseMode must be one of'));
+    end
+    close(figNum);
+
+    %% TEST case: testing with geoplot in patch mode
+    figNum = 20004;
+    titleString = sprintf('TEST case: geoplot in patch mode');
+    fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+    figure(figNum); clf;
+
+    fcn_plotRoad_plotLL([],[],(figNum));
+    set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+    startingXY = [];
+    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
+
+    % sgtitle(titleString, 'Interpreter','none');
+
+    % Check variable types
+    assert(isnumeric(pathXY));
+
+    % Check variable sizes
+    assert(size(pathXY,1)>=1);
+    assert(size(pathXY,2)==2);
+
+    % Check variable values
+    % User defined
+
+    % % Make sure plot opened up
+    % assert(isequal(get(gcf,'Number'),figNum));
 end
-close(figNum);
-close all;
-fprintf(1,'Figure: 2XXXXXX: TEST mode cases\n');
-
-%% TEST case: invalid patchCloseMode throws error
-figNum = 20003;
-titleString = sprintf('TEST case: invalid patchCloseMode throws error');
-fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-figure(figNum); clf;
-
-startingXY = [];
-
-try
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','invalid_patch_close_mode');
-	error('Test failed: invalid patchCloseMode did not throw an error.');
-catch ME
-	assert(contains(ME.message,'patchCloseMode must be one of'));
-end
-close(figNum);
-
-%% TEST case: This one returns nothing since there is no portion of the path in criteria
-figNum = 20001;
-titleString = sprintf('TEST case: This one returns nothing since there is no portion of the path in criteria');
-fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-figure(figNum); clf;
 
 %% Fast Mode Tests
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

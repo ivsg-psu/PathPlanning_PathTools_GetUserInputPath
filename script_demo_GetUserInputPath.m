@@ -1,4 +1,3 @@
-
 %% Introduction to and Purpose of the Code
 % This is the explanation of the code that can be found by running
 %
@@ -40,6 +39,37 @@
 %   % * Forces close of the figure upon completion
 %
 % (new release)
+%
+% 2026_05_15 by Jaime Rodriguez
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added inputType optional argument to support multiple drawing modes:
+%   %   'path', 'points', and 'patch'.
+%   % * Preserved 'path' as the default behavior, where user-selected points
+%   %   are displayed as connected line segments.
+%   % * Added 'points' mode, where user-selected points are displayed as
+%   %   individual markers without connecting line segments.
+%   % * Added 'patch' mode, where user-selected points are displayed as a
+%   %   closed patch.
+%   % * Updated patch display behavior so that, when fewer than 3 valid
+%   %   points are available, the selected points are displayed like a path
+%   %   instead of an empty patch.
+%   % * Added patchCloseMode optional argument to control patch point ordering.
+%   % * Added 'ordered' patch close mode, where patch points follow the user
+%   %   click order and the last point is connected back to the first point.
+%   % * Added 'nearest_free_endpoint' patch close mode, where paths separated
+%   %   by [nan nan] rows are ordered by connecting nearest available free
+%   %   endpoints.
+%   % * Added fcn_INTERNAL_buildPatchPoints helper function to prepare patch
+%   %   display points.
+%   % * Added fcn_INTERNAL_splitPathByNaNs helper function to split user input
+%   %   paths into subpaths separated by [nan nan] rows.
+%   % * Added updateDrawing internal function to centralize display updates
+%   %   across path, points, and patch modes.
+%   % * Added manual axis-limit mode after creating the drawing object to help
+%   %   prevent MATLAB from auto-zooming when points are added.
+%   % * Added 'c' key command in path mode to visually close separated
+%   %   subpaths by connecting nearest available free endpoints without
+%   %   modifying the returned pathXY.
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
