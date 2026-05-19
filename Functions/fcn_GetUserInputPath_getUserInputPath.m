@@ -17,14 +17,16 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %              than 3 valid points are available, the input is displayed
 %              like a path so the user can still see the selected points.
 %
+%   'aabb'   - the user selects two opposite corners, and the function
+%              returns the axis-aligned bounding box defined by those points.
+%
 % If the user right-clicks, the function inserts a [nan nan] row, which
 % effectively creates a gap in the plotted path. If the user hits the
 % "minus" or hyphen key, it removes the most recent point.
 %
-% In 'path' mode, pressing the 'c' key toggles a visual closure of separated
-% subpaths by connecting nearest available free endpoints. This closure does
-% not modify the returned pathXY. If requested as a second output, the closed
-% boundary is returned as closedAreaXY.
+% In 'path' mode, pressing the 'c' key adds closure segments between nearest
+% available free endpoints of separated subpaths. These closure segments are
+% appended to pathXY as normal path segments.
 %
 % As an optional input, the function can start with a startingXY point
 % list, plotting this first.
@@ -50,6 +52,10 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %                  'points' - displays selected points only, without
 %                             connecting line segments.
 %                  'patch'  - displays selected points as a closed patch.
+%                             Patches are filled when at least 3 valid
+%                             points are available.
+%                  'aabb'   - displays an axis-aligned bounding box using
+%                             two selected opposite corners.
 %
 %      patchCloseMode - string specifying how patch points are ordered before
 %                       drawing. Options are:
@@ -89,6 +95,8 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %      % Example using patch mode with nearest free endpoint ordering
 %      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'patch', 'nearest_free_endpoint')
 %
+%      % Example using aabb mode
+%      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'aabb')
 %
 % See the script: script_test_fcn_GetUserInputPath_getUserInputPath
 % for a full test suite.
@@ -154,6 +162,27 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   % * Added 'c' key command in path mode to visually close separated
 %   %   subpaths by connecting nearest available free endpoints without
 %   %   modifying the returned pathXY.
+%
+%
+% 2026_05_19 by Jaime Rodriguez
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added 'aabb' inputType, where the user selects two opposite corners
+%   %   and the function returns the corresponding axis-aligned bounding box.
+%   % * Added support for filled patch rendering in normal XY axes using
+%   %   separate patch objects underneath the editable user-selected outline.
+%   % * Added support for filled patch rendering in GeographicAxes using
+%   %   geopolyshape and geoplot.
+%   % * Updated patch drawing so that right-click [NaN NaN] separators allow
+%   %   the user to create multiple independent patch areas.
+%   % * Updated patch drawing so that the editable outline remains visible
+%   %   above the filled patch area.
+%   % * Updated GeographicAxes support for path, points, patch, and aabb
+%   %   drawing modes.
+%   % * Updated GeographicAxes panning behavior so map limits are shifted
+%   %   consistently using latitude and longitude limits.
+%   % * Added updateLineObject helper function to update either normal plot
+%   %   objects or geographic plot objects depending on the axes type.
+
 
 
 % TO-DO:
@@ -249,6 +278,7 @@ end
 %   'path'   - default, connected line segments
 %   'points' - points only, no lines
 %   'patch'  - closed polygon/patch
+%   'aabb'   - axis aligned bounding box from two selected cornerss
 inputType = 'path'; % default
 if 3 <= nargin
 	temp = varargin{3};
@@ -257,9 +287,9 @@ if 3 <= nargin
 	end
 end
 
-validInputTypes = {'path','points','patch'};
+validInputTypes = {'path','points','patch', 'aabb'};
 if ~any(strcmp(inputType,validInputTypes))
-	error('inputType must be one of: path, points, or patch');
+	error('inputType must be one of: path, points, patch or aabb');
 end
 
 % Does the user want to specify how patches are closed?
@@ -293,22 +323,29 @@ end
 
 % Controls whether path subpaths are visually closed by connecting
 % nearest free endpoints. This does not modify pathXY.
-flag_closePathByFreeEndpoints = false;
 
 h_fig = figure(figNum);
 
 % For debuggin
 warning('backtrace','on');
 
-ax = gca(figNum); % axes('Parent',h_fig);
+ax = gca;
 
-flag_isGeoPlot = 0;
-if isprop(ax,'LatitudeAxis') && isprop(ax,'LongitudeAxis')
-	flag_isGeoPlot = 1;
-end
+flag_isGeoPlot = isa(ax,'matlab.graphics.axis.GeographicAxes');
+
+hold(ax, 'on')
 
 % Store state in figure appdata
-setappdata(figNum,'HoldPanState',struct('active',false,'startPoint',[0 0],'startXLim',[0 0],'startYLim',[0 0],'button',[],'legendClicked',false));
+setappdata(figNum,'HoldPanState',struct( ...
+	'active',false, ...
+	'startPoint',[0 0], ...
+	'startXLim',[0 0], ...
+	'startYLim',[0 0], ...
+	'button',[], ...
+	'legendClicked',false, ...
+	'MoveIndex',[], ...
+	'hasDragged',false, ...
+	'ignoreNextButtonUp',false));
 
 if isempty(pathXY)
 	pathXY = [nan nan];
@@ -319,31 +356,68 @@ end
 % Create the user input drawing object
 switch inputType
 	case 'path'
-		hPoints = plot(pathXY(:,1), pathXY(:,2), ...
-			'r.-', ...
-			'MarkerFaceColor','r', ...
-			'DisplayName','User selected path');
+		if flag_isGeoPlot
+			hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected path');
+		else
+			hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected path');
+		end
 
 	case 'points'
-		hPoints = plot(pathXY(:,1), pathXY(:,2), ...
-			'r.', ...
-			'MarkerSize',20, ...
-			'DisplayName','User selected points');
+		if flag_isGeoPlot
+			hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
+				'r.', ...
+				'MarkerSize',20, ...
+				'DisplayName','User selected points');
+		else
+			hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+				'r.', ...
+				'MarkerSize',20, ...
+				'DisplayName','User selected points');
+		end
 
 	case 'patch'
-		hPoints = patch('XData',pathXY(:,1), ...
-			'YData',pathXY(:,2), ...
-			'FaceColor','red', ...
-			'FaceAlpha',0.2, ...
-			'EdgeColor','red', ...
-			'LineWidth',1.5, ...
-			'Marker','.', ...
-			'MarkerFaceColor','red', ...
-			'DisplayName','User selected patch');
+		if flag_isGeoPlot
+			hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected patch');
+		else
+			hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected patch');
+		end
+
+	case 'aabb'
+		if flag_isGeoPlot
+			hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected aabb');
+		else
+			hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected aabb');
+		end
 
 	otherwise
-		error('Unknown inputType. Use path, points, or patch.');
+		error('Unknown inputType. Use path, points, patch, or aabb.');
 end
+
+if isempty(hPoints) || ~isgraphics(hPoints)
+	error('hPoints was not created. Check inputType and drawing object creation.');
+end
+
+% Handles for filled patch objects in patch mode
+hPatchObjects = gobjects(0);
+
 % Freeze the axis limits so MATLAB does not auto-zoom when points are added
 if flag_isGeoPlot
 	[fixedLatLim, fixedLonLim] = geolimits;
@@ -354,16 +428,28 @@ else
 	ax.YLimMode = 'manual';
 end
 
-% Create the "exit" patch
+% Create the "exit" object
 if flag_isGeoPlot
-	laneShape = geopolyshape(nan, nan);
-	geoplot(laneShape,'FaceColor',[0 0 1],'DisplayName','Click Here To Exit')
+	% Do not use geopolyshape here because it requires Mapping Toolbox.
+	% A NaN geoplot line is enough to create a clickable legend item.
+	hExitPatch = geoplot(ax, nan, nan, ...
+		'b-', ...
+		'LineWidth',6, ...
+		'DisplayName','Click Here To Exit');
 else
-	patch('Xdata',nan, 'YData',nan,'FaceColor',[0 0 1],'DisplayName','Click Here To Exit')
+	hExitPatch = patch('XData',nan, ...
+		'YData',nan, ...
+		'FaceColor',[0 0 1], ...
+		'DisplayName','Click Here To Exit');
 end
 
+% Force legend order
+h_legend = legend(ax,[hPoints hExitPatch], ...
+	'Interpreter','none', ...
+	'Location','northeast');
 
-h_legend = legend('Interpreter','none','Location','northeast');
+% Prevent legend from adding a new entry every time the drawing updates
+h_legend.AutoUpdate = 'off';
 
 % Set ItemHitFcn
 h_legend.ItemHitFcn = @(src,event) legendItemClicked(src,event);
@@ -378,57 +464,157 @@ title({'Click to add points. Right-click inserts gap. Click-drag shifts point or
 	'(-) removes prior point. (d) deletes closest point. (i) inserts point. (c) closes path. Press Enter to finish.'});
 
 uiwait(figNum);    % block until uiresume or figure closed
+
+% If in aabb mode, return the final aabb instead of the two raw clicked points
+if strcmp(inputType,'aabb')
+	aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY);
+
+	if size(aabbXY,1) >= 5
+		pathXY = aabbXY;
+		closedAreaXY = aabbXY(1:end-1,:);
+	end
+end
+
 if ishandle(figNum)
 	% close(figNum); % optional: close after finishing
 end
-	function updateDrawing()
-		% Updates the drawing based on the selected inputType
+    function updateDrawing()
+	% Updates the drawing based on the selected inputType
 
-		switch inputType
-            case 'path'
-	if flag_closePathByFreeEndpoints && ~isempty(closedAreaXY) && size(closedAreaXY,1) >= 3
-		% Display the stored closed area as a closed outline
-		displayXY = [
-			closedAreaXY
-			closedAreaXY(1,:)
-		];
-	else
-		displayXY = pathXY;
+	switch inputType
+		case 'path'
+			updateLineObject(hPoints, pathXY);
+
+		case 'points'
+			updateLineObject(hPoints, pathXY);
+
+        case 'patch'
+	        patchXY = fcn_INTERNAL_buildPatchPoints(pathXY, patchCloseMode);
+        
+	        % Show the clicked points/edges as an editable red line
+	        updateLineObject(hPoints, patchXY);
+        
+	        % Draw the filled patch separately underneath the editable line
+	        updatePatchObjects(patchXY);
+
+		case 'aabb'
+			aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY);
+			updateLineObject(hPoints, aabbXY);
+
+			if size(aabbXY,1) >= 5
+				closedAreaXY = aabbXY(1:end-1,:);
+			else
+				closedAreaXY = [];
+			end
+
+		otherwise
+			error('Unknown inputType. Use path, points, patch, or aabb.');
 	end
 
-	set(hPoints, ...
-		'XData', displayXY(:,1), ...
-		'YData', displayXY(:,2));
-
-			case 'points'
-				set(hPoints, ...
-					'XData', pathXY(:,1), ...
-					'YData', pathXY(:,2));
-
-			case 'patch'
-	patchXY = fcn_INTERNAL_buildPatchPoints(pathXY, patchCloseMode);
-
-	if size(patchXY,1) >= 3
-		set(hPoints, ...
-			'XData', patchXY(:,1), ...
-			'YData', patchXY(:,2), ...
-			'FaceAlpha',0.2, ...
-			'LineStyle','-', ...
-			'Marker','.');
-	else
-		% With fewer than 3 valid points, display the selected points
-		% like a path so the user can see what is being clicked.
-		set(hPoints, ...
-			'XData', patchXY(:,1), ...
-			'YData', patchXY(:,2), ...
-			'FaceAlpha',0, ...
-			'LineStyle','-', ...
-			'Marker','.');
+	drawnow;
     end
-        end
 
-		drawnow;
+    function updateLineObject(hLine, displayXY)
+	    % Updates either a normal plot object or a geoplot object.
+    
+	    if isprop(hLine,'LatitudeData') && isprop(hLine,'LongitudeData')
+		    set(hLine, ...
+			    'LatitudeData', displayXY(:,1), ...
+			    'LongitudeData', displayXY(:,2));
+	    else
+		    set(hLine, ...
+			    'XData', displayXY(:,1), ...
+			    'YData', displayXY(:,2));
+	    end
+end
+
+function currentPointXY = getCurrentPointXY()
+	% Gets current cursor point in the current axes coordinate order.
+	currentPoint = get(ax,'CurrentPoint');
+	currentPointXY = currentPoint(1,1:2);
+end
+
+    function updatePatchObjects(patchXY)
+	% Deletes and redraws separate filled patch objects.
+	% Each subpath separated by [NaN NaN] becomes its own patch.
+
+	% Delete old patch objects
+	if ~isempty(hPatchObjects)
+		for ith_patch = 1:length(hPatchObjects)
+			if isgraphics(hPatchObjects(ith_patch))
+				delete(hPatchObjects(ith_patch));
+			end
+		end
 	end
+
+	hPatchObjects = gobjects(0);
+
+	% Split into separate patch candidates
+	subPaths = fcn_INTERNAL_splitPathByNaNs(patchXY);
+
+	for ith_subpath = 1:length(subPaths)
+
+		thisPatchXY = subPaths{ith_subpath};
+
+		% A patch needs at least 3 valid points
+		if size(thisPatchXY,1) >= 3
+
+        if flag_isGeoPlot
+	        % GeographicAxes case.
+	        % pathXY/geoplot data are assumed to be [Latitude Longitude].
+	        latitudes  = thisPatchXY(:,1);
+	        longitudes = thisPatchXY(:,2);
+        
+	        % Ensure the polygon is explicitly closed
+	        if ~isequal([latitudes(1) longitudes(1)], [latitudes(end) longitudes(end)])
+		        latitudes(end+1,1)  = latitudes(1);
+		        longitudes(end+1,1) = longitudes(1);
+	        end
+        
+	        % geopolyshape expects valid polygon topology. For outer boundaries,
+	        % clockwise vertex order is generally required.
+	        % Use longitude as X and latitude as Y for the signed area check.
+	        signedArea = 0.5 * sum( ...
+		        longitudes(1:end-1).*latitudes(2:end) - ...
+		        longitudes(2:end).*latitudes(1:end-1));
+        
+	        % Positive signed area means counter-clockwise, so reverse it
+	        if signedArea > 0
+		        latitudes  = flipud(latitudes);
+		        longitudes = flipud(longitudes);
+	        end
+        
+	        geoPatchShape = geopolyshape(latitudes, longitudes);
+        
+	        hPatchObjects(end+1) = geoplot(ax, geoPatchShape, ...
+		        'FaceColor','red', ...
+		        'FaceAlpha',0.2, ...
+		        'EdgeColor','red', ...
+		        'LineWidth',1.5, ...
+		        'HandleVisibility','off'); 
+
+			else
+				% Normal XY axes case
+				hPatchObjects(end+1) = patch('XData',thisPatchXY(:,1), ...
+					'YData',thisPatchXY(:,2), ...
+					'FaceColor','red', ...
+					'FaceAlpha',0.2, ...
+					'EdgeColor','red', ...
+					'LineWidth',1.5, ...
+					'HitTest','off', ...
+					'PickableParts','none', ...
+					'HandleVisibility','off'); %#ok<AGROW>
+			end
+		end
+	end
+
+	% Keep clicked points/line above filled patches
+	if isgraphics(hPoints)
+		uistack(hPoints,'top');
+	end
+end
+
+
 	function legendItemClicked(~, event)
 		s = getappdata(figNum,'HoldPanState');
 		s.legendClicked = true;
@@ -473,147 +659,191 @@ end
 
 
 	function onClick(~,~)
-		% Called when a plot is clicked
+	% Called when a plot is clicked
 
-		if ~ishandle(ax), return; end
+	    if ~ishandle(ax)
+		    return;
+	    end
 
-		sel = get(h_fig,'SelectionType');    % 'normal' left, 'alt' right, 'open' double
-		subtitle(sprintf('Sel: %s',sel));
+	    sel = get(h_fig,'SelectionType');    % 'normal' left, 'alt' right, 'open' double
+	    subtitle(sprintf('Sel: %s',sel));
 
+	    if strcmp(sel,'normal')           % only left-clicks add points or pans
 
-		if strcmp(sel,'normal')           % only left-clicks add points or pans
+		    s = getappdata(figNum,'HoldPanState');
+		    s.active = true;
+		    s.button = sel;
+		    s.hasDragged = false;
 
-			s = getappdata(figNum,'HoldPanState');
-			s.active = true;
-			s.button = sel;
+		    % starting data point in axes coordinates
+		    currentPointXY = getCurrentPointXY();
+		    s.startPoint = currentPointXY;
 
-			% starting data point in axes coordinates
-			currentPoint = get(ax,'CurrentPoint');
-			currentPointXY = currentPoint(1,1:2);
-			s.startPoint = currentPoint(1,1:2);
+		% Get current axis limits
+		    if flag_isGeoPlot
+			    [latlimOut,lonlimOut] = geolimits;
 
+			% GeographicAxes:
+			% X direction = longitude
+			% Y direction = latitude
+			    s.startXLim = lonlimOut;
+			    s.startYLim = latlimOut;
+		    else
+			    s.startXLim = ax.XLim;
+			    s.startYLim = ax.YLim;
+		    end
 
-			% Get current axis limits
-			if flag_isGeoPlot
-				[latlimOut,lonlimOut] = geolimits;
-				s.startXLim = lonlimOut;
-				s.startYLim = latlimOut;
-			else
-				s.startXLim = ax.XLim;
-				s.startYLim = ax.YLim;
-			end
+		% Check whether the click is close to an existing point
+		    closestIndex = fcn_INTERNAL_findNearestPointIndex( ...
+			    s.startXLim, s.startYLim, pathXY, currentPointXY, 0.01);
 
-			%%%%%%%%%%%%%
-			% FORMAT:
-			% closestIndex = fcn_INTERNAL_findNearestPointIndex(xlimits, ylimits, pathXY, currentPointXY, threshold)
-			closestIndex = fcn_INTERNAL_findNearestPointIndex(s.startXLim, s.startYLim, pathXY, currentPointXY, 0.01);
-			s.MoveIndex = closestIndex;
+		    s.MoveIndex = closestIndex;
 
-			% Save current axis limits
-			setappdata(figNum,'HoldPanState',s);
+		% Save current state
+		    setappdata(figNum,'HoldPanState',s);
 
-			% enable motion callback
-			set(figNum,'WindowButtonMotionFcn',@onMouseMove);
+		% enable motion callback
+		    set(figNum,'WindowButtonMotionFcn',@onMouseMove);
 
-		elseif strcmp(sel,'alt')
-			pathXY(end+1,:) = [nan nan];         % append nan
-			updateDrawing();                      % update immediately
+        elseif strcmp(sel,'alt')
+	        pathXY(end+1,:) = [nan nan];         % append nan
+        
+	        s = getappdata(figNum,'HoldPanState');
+	        s.active = false;
+	        s.hasDragged = false;
+	        s.ignoreNextButtonUp = true;
+	        setappdata(figNum,'HoldPanState',s);
+        
+	        updateDrawing();                      % update immediately	    else
+		    return;
+	    end
+    end
+
+    function onMouseMove(~,~)
+	    currentPointXY = getCurrentPointXY();
+	    subtitle(['(X,Y) = (', num2str(currentPointXY(1)), ', ',num2str(currentPointXY(2)), ')']);
+
+	    s = getappdata(figNum,'HoldPanState');
+
+	% If mouse is not down, only update coordinate display.
+	    if ~s.active
+		    return;
+	    end
+
+	    positionChange = currentPointXY - s.startPoint;
+
+	    xAxisRange = s.startXLim(2) - s.startXLim(1);
+	    yAxisRange = s.startYLim(2) - s.startYLim(1);
+
+	    if xAxisRange == 0 || yAxisRange == 0
+		    return;
+	    end
+
+	normalizedChange = norm(positionChange ./ [xAxisRange yAxisRange]);
+
+	    % Ignore tiny mouse movements during normal clicks
+	    dragThreshold = 0.02;
+
+	    if normalizedChange < dragThreshold
+		    return;
+	    end
+
+	    s.hasDragged = true;
+	    setappdata(figNum,'HoldPanState',s);
+
+	    if isempty(s.MoveIndex)
+
+		% Pan mode
+		    dx = currentPointXY(1) - s.startPoint(1);
+		    dy = currentPointXY(2) - s.startPoint(2);
+
+        if flag_isGeoPlot
+	        % currentPointXY is stored as [Latitude Longitude]
+	        dLat = currentPointXY(1) - s.startPoint(1);
+	        dLon = currentPointXY(2) - s.startPoint(2);
+        
+	        newLatitudeLimits  = s.startYLim - dLat;
+	        newLongitudeLimits = s.startXLim - dLon;
+        
+	        geolimits(newLatitudeLimits,newLongitudeLimits);
+        else
+	        ax.XLim = s.startXLim - dx;
+	        ax.YLim = s.startYLim - dy;
+        end
+
+	    else
+		% Move point mode
+		    xl = s.startXLim;
+		    yl = s.startYLim;
+
+		    newx = max(min(currentPointXY(1),xl(2)),xl(1));
+		    newy = max(min(currentPointXY(2),yl(2)),yl(1));
+
+		    pathXY(s.MoveIndex,:) = [newx newy];
+
+		    updateDrawing();
+	    end
+
+	    drawnow limitrate;
+    end
+
+    function onButtonUp(~,~)
+	s = getappdata(figNum,'HoldPanState');
+    
+        if isfield(s,'ignoreNextButtonUp') && s.ignoreNextButtonUp
+	        s.ignoreNextButtonUp = false;
+	        setappdata(figNum,'HoldPanState',s);
+	        return;
+        end
+
+	if s.active
+		s.active = false;
+	end
+
+	if s.legendClicked
+		s.legendClicked = false;
+		setappdata(figNum,'HoldPanState',s);
+		return;
+	end
+
+	% If the user dragged, do not add a new point
+	if isfield(s,'hasDragged') && s.hasDragged
+		s.hasDragged = false;
+		setappdata(figNum,'HoldPanState',s);
+		return;
+	end
+
+	% If no drag occurred, treat this as a click and add a point
+	currentPointXY = getCurrentPointXY();
+	x = currentPointXY(1);
+	y = currentPointXY(2);
+
+	if strcmp(inputType,'aabb')
+		validRows = ~any(isnan(pathXY),2);
+		NvalidPoints = sum(validRows);
+
+		if all(isnan(pathXY),'all')
+			pathXY(1,:) = [x, y];
+
+		elseif NvalidPoints < 2
+			pathXY(end+1,:) = [x, y];
+
 		else
-			% fprintf(1,'State is: %s\n',sel);
-			return;
+			validIndices = find(validRows);
+			pathXY(validIndices(2),:) = [x, y];
 		end
-	end
 
-	function onMouseMove(~,~)
-		currentPoint = get (ax, 'CurrentPoint');
-		subtitle(['(X,Y) = (', num2str(currentPoint(1,1)), ', ',num2str(currentPoint(1,2)), ')']);
-
-		s = getappdata(figNum,'HoldPanState');
-
-		% Check to see if mouse is down (active). If not, do nothing.
-		if ~s.active, return; end
-
-		currentPointXY = currentPoint(1,1:2);
-		if isempty(s.MoveIndex)
-
-			% Must be in pan mode
-			dx = currentPointXY(1) - s.startPoint(1);
-			dy = currentPointXY(2) - s.startPoint(2);
-
-
-			% subtract dx/dy to move view with mouse drag (drag to the right moves view left)
-			if flag_isGeoPlot
-				newLongitudeLimits = s.startXLim - dy;
-				newLatitudeLimits  = s.startYLim - dx;
-				geolimits(newLatitudeLimits,newLongitudeLimits);
-			else
-				ax.XLim = s.startXLim - dx;
-				ax.YLim = s.startYLim - dy;
-			end
+	else
+		if all(isnan(pathXY),'all')
+			pathXY(1,:) = [x, y];
 		else
-			% Must be in move point mode
-
-			% Constrain within axis limits
-			xl = s.startXLim;
-			yl = s.startYLim;
-
-			if flag_isGeoPlot
-				newx = max(min(currentPointXY(1,2),xl(2)),xl(1));
-				newy = max(min(currentPointXY(1,1),yl(2)),yl(1));
-				pathXY(s.MoveIndex,:) = [newy newx];
-			else
-				newx = max(min(currentPointXY(1,1),xl(2)),xl(1));
-				newy = max(min(currentPointXY(1,2),yl(2)),yl(1));
-				pathXY(s.MoveIndex,:) = [newx newy];
-			end
-
-			updateDrawing();
-		end
-
-		drawnow limitrate;
-	end
-
-	function onButtonUp(~,~)
-		s = getappdata(figNum,'HoldPanState');
-		if s.active
-			s.active = false;
-			setappdata(figNum,'HoldPanState',s);
-			% set(figNum,'WindowButtonMotionFcn',[]); % disable motion callback
-		end
-
-		if s.legendClicked
-			% Register the legend was clicked, and then do nothing
-			s.legendClicked = false;
-			setappdata(figNum,'HoldPanState',s);
-			return;
-		end
-
-
-		% Was a click detected? Compare current point to previous point to
-		% see if there was a change
-		currentPoint = get(ax,'CurrentPoint');
-		x = currentPoint(1,1);
-		y = currentPoint(1,2);
-		positionChange = [x y] - s.startPoint;
-		absChange = norm(positionChange);
-
-		% For debugging
-		if 1==0
-			fprintf(1,'change was: %.6f\n',absChange);
-		end
-
-
-		thresholdChange = eps;
-		if absChange<=thresholdChange
-			% If enter here, a click was detected
-			if all(isnan(pathXY),'all')
-				pathXY(1,:) = [x, y];
-			else
-				pathXY(end+1,:) = [x y];         % append
-			end
-			updateDrawing();
+			pathXY(end+1,:) = [x y];
 		end
 	end
+
+	setappdata(figNum,'HoldPanState',s);
+	updateDrawing();
+end
 
 	function onKey(~,event)
 		% User pressed a key on the keyboard
@@ -630,34 +860,24 @@ end
 				% uiresume(h_fig);               % optional: resume if waiting
 				% close(h_fig);                  % optional: close figure
 
-        	case 'c' % Toggle closing path using nearest free endpoints
+        	case 'c' % Add closure lines between nearest free endpoints
 	if strcmp(inputType,'path')
 
-		flag_closePathByFreeEndpoints = ~flag_closePathByFreeEndpoints;
+		closureSegments = fcn_INTERNAL_buildFreeEndpointClosureSegments(pathXY);
 
-		if flag_closePathByFreeEndpoints
-			% Build and store the closed area from separated subpaths
+		if ~isempty(closureSegments)
+			pathXY = [
+				pathXY
+				closureSegments
+			];
+
 			closedAreaXY = fcn_INTERNAL_buildClosedAreaFromPath(pathXY);
-
-			if size(closedAreaXY,1) < 3
-				fprintf(1,'Not enough valid points to create a closed area.\n');
-				closedAreaXY = [];
-				flag_closePathByFreeEndpoints = false;
-			else
-				fprintf(1,'Path free-endpoint closure is ON. closedAreaXY has been updated.\n');
-			end
-		else
-			closedAreaXY = [];
-			fprintf(1,'Path free-endpoint closure is OFF. closedAreaXY has been cleared.\n');
 		end
 
 		updateDrawing();
-
-	else
-		fprintf(1,'Close command is only active in path mode.\n');
 	end
 
-			case 'hyphen' % Removes the last point
+			case {'hyphen','subtract'} % Removes the last point
 				if size(pathXY,1)>0
 					pathXY(end,:) = [];
 				end
@@ -666,96 +886,39 @@ end
 				end
 				updateDrawing();                    % update immediately
 
-			case 'i'     % Insert a new point
+			case 'i' % Add a new point at current cursor location
 
-				% Find closest point
-				currentPoint = get (ax, 'CurrentPoint');
-				currentPointXY = currentPoint(1,1:2);
+	% Get current cursor point
+	currentPointXY = getCurrentPointXY();
 
-				if size(pathXY,1)==0
-					pathXY = currentPointXY;
-				else
-					% Break path up into cell arrays, because snap function
-					% does not work if there are NaN values
-					cellArrayOfSubPathIndices = fcn_DebugTools_breakArrayByNans(pathXY,-1);
+	if strcmp(inputType,'aabb')
+		% aabb mode only keeps two corner points
+		validRows = ~any(isnan(pathXY),2);
+		NvalidPoints = sum(validRows);
 
-					% Loop through subpaths to see if they have closest
-					% distance
-					nearestDistance = inf;
-					first_path_point_index = 1;
-					second_path_point_index = 1;
-					flag_isStartOrEnd = 0;
-					for ith_subpath = 1:length(cellArrayOfSubPathIndices)
-						thisIndices = cellArrayOfSubPathIndices{ith_subpath};
-						thisSubPath = pathXY(thisIndices,:);
+		if isempty(pathXY) || all(isnan(pathXY),'all')
+			pathXY = currentPointXY;
 
-						% Keep track of which index the subpath starts at.
-						% The snap function returns indices relative to the
-						% subpath, NOT to pathXY
-						thisOffsetIndex = thisIndices(1);
+		elseif NvalidPoints < 2
+			pathXY(end+1,:) = currentPointXY;
 
-						% Snap point onto nearest path segment
-						% FORMAT:
-						% [closest_path_point,s_coordinate,path_point_yaw,....
-						% 	first_path_point_index,...
-						% 	second_path_point_index,...
-						% 	percent_along_length] = ...
-						% 	fcn_Path_snapPointOntoNearestPath(point, path, varargin)
-						[closest_path_point,~,~,....
-							this_first_path_point_index,...
-							this_second_path_point_index,...
-							~] = fcn_Path_snapPointOntoNearestPath(currentPointXY, thisSubPath, -1);
-						thisDistance = sum((closest_path_point-currentPointXY).^2,2);
+		else
+			% Replace second corner if two already exist
+			validIndices = find(validRows);
+			pathXY(validIndices(2),:) = currentPointXY;
+		end
 
-						% Check to see if this snap point is the closest
-						if thisDistance < nearestDistance
-							nearestDistance = thisDistance;
-							first_path_point_index = this_first_path_point_index + thisOffsetIndex-1;
-							second_path_point_index = this_second_path_point_index + thisOffsetIndex-1;
+	else
+		% Normal behavior for path, points, and patch:
+		% simply append a new point
+		if isempty(pathXY) || all(isnan(pathXY),'all')
+			pathXY = currentPointXY;
+		else
+			pathXY(end+1,:) = currentPointXY;
+		end
+	end
 
-							% Check for special case where insertion has to
-							% be done at one of the endpoints of the
-							% subsegments
-							flag_isStartOrEnd = 0;
-							if this_first_path_point_index==this_second_path_point_index
-								if this_first_path_point_index==1
-									flag_isStartOrEnd = -1;
-								else
-									flag_isStartOrEnd = 1;
-								end
-							end
-
-						end
-					end
-
-					% Perform insertion
-					if first_path_point_index==second_path_point_index
-						% The only time code will enter here is if an added
-						% path point was found to occur either at the very
-						% start or very end of the entire pathXY or one of
-						% the subsegments. The insertion changes depending
-						% on which case is encountered.
-						if first_path_point_index == 1
-							% Insert at very front
-							pathXY = [currentPointXY; pathXY];
-						elseif first_path_point_index == size(pathXY,1)
-							% Insert at very end
-							pathXY = [pathXY; currentPointXY];
-						elseif flag_isStartOrEnd== -1
-							% Insert at front of subsegment but not very front
-							pathXY = [pathXY(1:first_path_point_index-1,:); currentPointXY; pathXY(first_path_point_index:end,:)];
-						else
-							% Insert at end of subsegment but not very end
-							pathXY = [pathXY(1:first_path_point_index,:); currentPointXY; pathXY(first_path_point_index+1:end,:)];
-						end
-					else
-						% Insert between end points
-						pathXY = [pathXY(1:first_path_point_index,:); currentPointXY; pathXY(second_path_point_index:end,:)];
-					end
-				end
-
-				updateDrawing();                     % update immediately
-
+	updateDrawing();
 
 
 			case 'd' % Delete a point
@@ -765,19 +928,22 @@ end
 				end
 
 				% Find closest point
-				currentPoint = get (ax, 'CurrentPoint');
-				currentPointXY = currentPoint(1,1:2);
+				currentPointXY = getCurrentPointXY();
 
 				% Get current axis limits
 				s = getappdata(figNum,'HoldPanState');
-				if flag_isGeoPlot
-					[latlimOut,lonlimOut] = geolimits;
-					s.startXLim = lonlimOut;
-					s.startYLim = latlimOut;
-				else
-					s.startXLim = ax.XLim;
-					s.startYLim = ax.YLim;
-				end
+                if flag_isGeoPlot
+	                [latlimOut,lonlimOut] = geolimits;
+                
+	                % GeographicAxes:
+	                % X direction = longitude
+	                % Y direction = latitude
+	                s.startXLim = lonlimOut;
+	                s.startYLim = latlimOut;
+                else
+	                s.startXLim = ax.XLim;
+	                s.startYLim = ax.YLim;
+                end
 
 				%%%%%%%%%%%%%
 				% FORMAT:
@@ -790,7 +956,7 @@ end
 				updateDrawing();                      % update immediately
 
 			otherwise
-				fprintf(1,'No action coded for keypress: %s\n',keyPress);
+				% No action for this keypress
 		end
 	end
 
@@ -882,8 +1048,10 @@ end
 
 % Remove rows that are all NaN for ordered mode
 switch patchCloseMode
-	case 'ordered'
-		patchXY = pathXY(~any(isnan(pathXY),2),:);
+    case 'ordered'
+	% Keep NaN rows so right-click can separate different patches.
+	% This allows the user to start a new patch after inserting [NaN NaN].
+	patchXY = pathXY;
 
 	case 'nearest_free_endpoint'
 		subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY);
@@ -988,151 +1156,6 @@ end
 if ~isempty(currentSubPath)
 	subPaths{end+1} = currentSubPath;
 end
-
-end
-
-function displayXY = fcn_INTERNAL_buildClosedPathDisplayPoints(pathXY, flag_closePathByFreeEndpoints)
-% Builds display points for path mode.
-%
-% If flag_closePathByFreeEndpoints is false:
-%   displayXY = pathXY
-%
-% If flag_closePathByFreeEndpoints is true:
-%   the function detects free endpoints of subpaths separated by [nan nan]
-%   rows and connects the closest endpoint pairs. Each endpoint is used
-%   only once. Connections are only made between different subpaths.
-%
-% This function does not modify the original pathXY.
-
-if isempty(pathXY)
-	displayXY = pathXY;
-	return;
-end
-
-% If closure is off, display the original path exactly as stored
-if ~flag_closePathByFreeEndpoints
-	displayXY = pathXY;
-	return;
-end
-
-% Split path into subpaths separated by NaN rows
-subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY);
-
-if isempty(subPaths)
-	displayXY = pathXY;
-	return;
-end
-
-% Start by drawing the original path exactly as stored
-displayXY = pathXY;
-
-% Collect free endpoints.
-% Each subpath contributes two free endpoints:
-%   - first point
-%   - last point
-freeEndpoints = [];
-endpointSubPathIndex = [];
-
-for ith_subpath = 1:length(subPaths)
-
-	thisSubPath = subPaths{ith_subpath};
-
-	if isempty(thisSubPath)
-		continue;
-	end
-
-	% First endpoint of this subpath
-	freeEndpoints = [
-		freeEndpoints
-		thisSubPath(1,:)
-	];
-
-	endpointSubPathIndex = [
-		endpointSubPathIndex
-		ith_subpath
-	];
-
-	% Last endpoint of this subpath
-	freeEndpoints = [
-		freeEndpoints
-		thisSubPath(end,:)
-	];
-
-	endpointSubPathIndex = [
-		endpointSubPathIndex
-		ith_subpath
-	];
-end
-
-Nendpoints = size(freeEndpoints,1);
-
-% If fewer than 2 free endpoints exist, no connection can be made
-if Nendpoints < 2
-	return;
-end
-
-usedEndpoint = false(Nendpoints,1);
-closureSegments = [];
-
-while sum(~usedEndpoint) >= 2
-
-	bestDistanceSquared = inf;
-	best_i = [];
-	best_j = [];
-
-	for i = 1:Nendpoints
-
-		if usedEndpoint(i)
-			continue;
-		end
-
-		for j = i+1:Nendpoints
-
-			if usedEndpoint(j)
-				continue;
-			end
-
-			% Do not connect endpoints from the same subpath.
-			% This prevents closing each individual subpath by itself.
-			if endpointSubPathIndex(i) == endpointSubPathIndex(j)
-				continue;
-			end
-
-			thisDistanceSquared = sum((freeEndpoints(i,:) - freeEndpoints(j,:)).^2);
-
-			if thisDistanceSquared < bestDistanceSquared
-				bestDistanceSquared = thisDistanceSquared;
-				best_i = i;
-				best_j = j;
-			end
-		end
-	end
-
-	% If no valid pair was found, stop
-	if isempty(best_i) || isempty(best_j)
-		break;
-	end
-
-	% Add one visual connection segment.
-	% NaN NaN prevents MATLAB from connecting this segment to unrelated
-	% previous points.
-	closureSegments = [
-		closureSegments
-		NaN NaN
-		freeEndpoints(best_i,:)
-		freeEndpoints(best_j,:)
-	];
-
-	% Mark both endpoints as used so each one is connected only once
-	usedEndpoint(best_i) = true;
-	usedEndpoint(best_j) = true;
-end
-
-% Add visual closure segments to the original display path
-displayXY = [
-	displayXY
-	closureSegments
-];
 
 end
 
@@ -1251,5 +1274,157 @@ while ~isempty(subPaths)
 
 	subPaths(bestSubPathIndex) = [];
 end
+
+end 
+
+function closureSegments = fcn_INTERNAL_buildFreeEndpointClosureSegments(pathXY)
+% Builds closure segments between nearest free endpoints of different subpaths.
+%
+% Each closure segment is returned as:
+%   NaN NaN
+%   pointA
+%   pointB
+%
+% These segments can be appended directly to pathXY.
+
+closureSegments = [];
+
+if isempty(pathXY)
+	return;
+end
+
+subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY);
+
+if length(subPaths) < 2
+	return;
+end
+
+freeEndpoints = [];
+endpointSubPathIndex = [];
+
+for ith_subpath = 1:length(subPaths)
+
+	thisSubPath = subPaths{ith_subpath};
+
+	if isempty(thisSubPath)
+		continue;
+	end
+
+	freeEndpoints = [
+		freeEndpoints
+		thisSubPath(1,:)
+		thisSubPath(end,:)
+	];
+
+	endpointSubPathIndex = [
+		endpointSubPathIndex
+		ith_subpath
+		ith_subpath
+	];
+end
+
+Nendpoints = size(freeEndpoints,1);
+
+if Nendpoints < 2
+	return;
+end
+
+usedEndpoint = false(Nendpoints,1);
+
+while sum(~usedEndpoint) >= 2
+
+	bestDistanceSquared = inf;
+	best_i = [];
+	best_j = [];
+
+	for i = 1:Nendpoints
+
+		if usedEndpoint(i)
+			continue;
+		end
+
+		for j = i+1:Nendpoints
+
+			if usedEndpoint(j)
+				continue;
+			end
+
+			% Do not connect endpoints from the same subpath
+			if endpointSubPathIndex(i) == endpointSubPathIndex(j)
+				continue;
+			end
+
+			thisDistanceSquared = sum((freeEndpoints(i,:) - freeEndpoints(j,:)).^2);
+
+			if thisDistanceSquared < bestDistanceSquared
+				bestDistanceSquared = thisDistanceSquared;
+				best_i = i;
+				best_j = j;
+			end
+		end
+	end
+
+	if isempty(best_i) || isempty(best_j)
+		break;
+	end
+
+	closureSegments = [
+		closureSegments
+		NaN NaN
+		freeEndpoints(best_i,:)
+		freeEndpoints(best_j,:)
+	];
+
+	usedEndpoint(best_i) = true;
+	usedEndpoint(best_j) = true;
+end
+
+end
+
+function aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY)
+% Builds an axis-aligned bounding box from two selected corner points.
+%
+% INPUTS:
+%   pathXY - Nx2 array. The first two valid points are used as opposite
+%            corners of the aabb.
+%
+% OUTPUTS:
+%   aabbXY - 5x2 array defining the closed aabb outline. If fewer than two
+%            valid points are available, the valid clicked points are returned.
+
+% Remove NaN separator rows
+validPoints = pathXY(~any(isnan(pathXY),2),:);
+
+if isempty(validPoints)
+	aabbXY = [nan nan];
+	return;
+end
+
+if size(validPoints,1) < 2
+	aabbXY = validPoints;
+	return;
+end
+
+% Use the first two valid points as opposite corners
+point1 = validPoints(1,:);
+point2 = validPoints(2,:);
+
+% For normal axes, columns are X and Y.
+% For geographic axes, columns are latitude/longitude or longitude/latitude
+% depending on how the rest of the function stores them. In both cases,
+% the aabb is built using column-wise min/max values.
+minFirstColumn  = min(point1(1), point2(1));
+maxFirstColumn  = max(point1(1), point2(1));
+minSecondColumn = min(point1(2), point2(2));
+maxSecondColumn = max(point1(2), point2(2));
+
+% Build closed box outline
+aabbXY = [
+	minFirstColumn  minSecondColumn
+	maxFirstColumn  minSecondColumn
+	maxFirstColumn  maxSecondColumn
+	minFirstColumn  maxSecondColumn
+	minFirstColumn  minSecondColumn
+	];
 
 end

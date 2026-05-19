@@ -106,7 +106,7 @@ if 1==0
 	figure(figNum); clf;
 
 	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'path');
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch', 'ordered');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -164,7 +164,7 @@ if 1==0
 		0 1
 		];
 
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','nearest_free_endpoint');
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -432,7 +432,7 @@ end
 % Test figures start with 2
 
 % Commented out since automatic testing will not work with manual inputs
-if 1==0
+if 1==1
 
     %% TEST case: invalid inputType throws error
     figNum = 20002;
@@ -478,7 +478,7 @@ if 1==0
     set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
 
     startingXY = [];
-    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
+    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch', 'ordered');
 
     % sgtitle(titleString, 'Interpreter','none');
 
