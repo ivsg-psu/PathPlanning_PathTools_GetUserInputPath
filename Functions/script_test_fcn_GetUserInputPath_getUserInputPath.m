@@ -37,18 +37,19 @@
 %
 %   % * Make sure all sections have assertion tests to avoid warnings (see
 %   warnings on Line 442 for example)--SOLVED
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * The 'i' input does work
+%   % * DeleteD 10008 example
+%   % * The aabb mode seems to only allow one AABB to be entered. This is
+%   fine and makes sense, see for example test 20005, but seems like we
+%   should document this in the header comments--SOLVED
 
 % TO-DO:
 %
 % 2026_05_20 by Jaime Rodriguez
 % - In script_test_fcn_GetUserInputPath_getUserInputPath
-%   % * The 'i' input does not work
-%   % * Delete 10008 example
 
-%
-%   % * The aabb mode seems to only allow one AABB to be entered. This is
-%   fine and makes sense, see for example test 20005, but seems like we
-%   should document this in the header comments--SOLVED
+
 
 
 
@@ -130,46 +131,8 @@ if 1==0
 	assert(size(pathXY,1)>=1);
 	assert(size(pathXY,2)==2);
 
-    	%% DEMO case: patch inputType with ordered patchCloseMode
-	figNum = 10008;
-	titleString = sprintf('DEMO case: patch inputType with ordered patchCloseMode');
-	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-	figure(figNum); clf;
-
-	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
-
-	% Check variable types
-	assert(isnumeric(pathXY));
-
-	% Check variable sizes
-	assert(size(pathXY,1)>=1);
-	assert(size(pathXY,2)==2);
     
- 	%% DEMO case: patch inputType with nearest_free_endpoint patchCloseMode
-	figNum = 10009;
-	titleString = sprintf('DEMO case: patch inputType with nearest_free_endpoint patchCloseMode');
-	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-	figure(figNum); clf;
-
-	startingXY = [
-		0 0
-		1 0
-		2 0
-		NaN NaN
-		2 1
-		1 1
-		0 1
-		];
-
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
-
-	% Check variable types
-	assert(isnumeric(pathXY));
-
-	% Check variable sizes
-	assert(size(pathXY,1)>=1);
-	assert(size(pathXY,2)==2);
+ 	
 
  	%% DEMO case: patch inputType with fewer than 3 points
 	figNum = 10010;

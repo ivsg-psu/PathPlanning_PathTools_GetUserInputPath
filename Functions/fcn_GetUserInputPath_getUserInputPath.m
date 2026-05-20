@@ -820,7 +820,7 @@ end
 				end
 				updateDrawing();                    % update immediately
 
-			case 'i' % Add a new point at current cursor location
+			case 'i' % Insert a new point into the nearest path segment
 
 	% Get current cursor point
 	currentPointXY = getCurrentPointXY();
@@ -842,19 +842,116 @@ end
 			pathXY(validIndices(2),:) = currentPointXY;
 		end
 
-	else
-		% Normal behavior for path, points, and patch:
-		% simply append a new point
+	elseif strcmp(inputType,'points')
+		% In points mode there are no line segments, so append the point.
 		if isempty(pathXY) || all(isnan(pathXY),'all')
 			pathXY = currentPointXY;
 		else
 			pathXY(end+1,:) = currentPointXY;
 		end
+
+	else
+		% In path and patch modes, insert the point into the nearest segment.
+
+		if isempty(pathXY) || all(isnan(pathXY),'all')
+			pathXY = currentPointXY;
+
+		else
+			% Break path into subpaths because snap/insertion cannot work
+			% directly across [NaN NaN] separator rows.
+			cellArrayOfSubPathIndices = fcn_DebugTools_breakArrayByNans(pathXY,-1);
+
+			nearestDistance = inf;
+			first_path_point_index = [];
+			second_path_point_index = [];
+			flag_isStartOrEnd = 0;
+
+			for ith_subpath = 1:length(cellArrayOfSubPathIndices)
+
+				thisIndices = cellArrayOfSubPathIndices{ith_subpath};
+				thisSubPath = pathXY(thisIndices,:);
+
+				% Skip empty or invalid subpaths
+				if isempty(thisSubPath) || all(isnan(thisSubPath),'all')
+					continue;
+				end
+
+				thisOffsetIndex = thisIndices(1);
+
+				if size(thisSubPath,1) == 1
+					% With only one point, compare directly to that point.
+					thisDistance = sum((thisSubPath(1,:) - currentPointXY).^2);
+
+					if thisDistance < nearestDistance
+						nearestDistance = thisDistance;
+						first_path_point_index = thisOffsetIndex;
+						second_path_point_index = thisOffsetIndex;
+						flag_isStartOrEnd = 1;
+					end
+
+				else
+					% Snap point onto nearest path segment
+					[closest_path_point,~,~, ...
+						this_first_path_point_index, ...
+						this_second_path_point_index, ...
+						~] = fcn_Path_snapPointOntoNearestPath(currentPointXY, thisSubPath, -1);
+
+					thisDistance = sum((closest_path_point-currentPointXY).^2,2);
+
+					if thisDistance < nearestDistance
+						nearestDistance = thisDistance;
+						first_path_point_index = this_first_path_point_index + thisOffsetIndex - 1;
+						second_path_point_index = this_second_path_point_index + thisOffsetIndex - 1;
+
+						flag_isStartOrEnd = 0;
+						if this_first_path_point_index == this_second_path_point_index
+							if this_first_path_point_index == 1
+								flag_isStartOrEnd = -1;
+							else
+								flag_isStartOrEnd = 1;
+							end
+						end
+					end
+				end
+			end
+
+			% If no valid insertion location was found, append as fallback
+			if isempty(first_path_point_index) || isempty(second_path_point_index)
+				pathXY(end+1,:) = currentPointXY;
+
+			elseif first_path_point_index == second_path_point_index
+
+				if first_path_point_index == 1
+					% Insert at very front
+					pathXY = [currentPointXY; pathXY];
+
+				elseif first_path_point_index == size(pathXY,1)
+					% Insert at very end
+					pathXY = [pathXY; currentPointXY];
+
+				elseif flag_isStartOrEnd == -1
+					% Insert at front of subsegment but not very front
+					pathXY = [pathXY(1:first_path_point_index-1,:); ...
+						currentPointXY; ...
+						pathXY(first_path_point_index:end,:)];
+
+				else
+					% Insert at end of subsegment but not very end
+					pathXY = [pathXY(1:first_path_point_index,:); ...
+						currentPointXY; ...
+						pathXY(first_path_point_index+1:end,:)];
+				end
+
+			else
+				% Insert between nearest segment endpoints
+				pathXY = [pathXY(1:first_path_point_index,:); ...
+					currentPointXY; ...
+					pathXY(second_path_point_index:end,:)];
+			end
+		end
 	end
 
 	updateDrawing();
-
-
 			case 'd' % Delete a point
 				if size(pathXY,1)<2
 					pathXY = [nan nan];
