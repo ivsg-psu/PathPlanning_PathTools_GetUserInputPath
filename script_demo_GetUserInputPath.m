@@ -89,6 +89,51 @@
 %   %   consistently using latitude and longitude limits.
 %   % * Added updateLineObject helper function to update either normal plot
 %   %   objects or geographic plot objects depending on the axes type.
+%
+% 2026_05_20 by Jaime Rodriguez
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * In the path mode, for example demo 10001, if someone clicks "c",
+%   the code incorrectly closes the points by connecting many to the first
+%   one. Seems that "c" should just close only the current path, not many
+%   paths. Not sure if this is related to patchCloseMode - not sure how
+%   this option works. Why is this an option (unclear)?--SOLVED BY DELETING
+%   C COMMAND AND PATCHCLOSEMODE
+%
+%   % * Getting an error "Invalid figure handle" (line 974) when closing
+%   figure manually (clicking on "X" and not on the legend patch)--SOLVED
+%
+%   % * Make sure all sections have assertion tests to avoid warnings (see
+%   warnings on Line 442 for example)--SOLVED
+%
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * The 'i' input does work
+%   % * DeleteD 10008 example
+%   % * The aabb mode seems to only allow one AABB to be entered. This is
+%   fine and makes sense, see for example test 20005, but seems like we
+%   should document this in the header comments--SOLVED
+%
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * In the path mode, for example demo 10001, if someone clicks "c",
+%   the code incorrectly closes the points by connecting many to the first
+%   one. Seems that "c" should just close only the current path, not many
+%   paths. Not sure if this is related to patchCloseMode - not sure how
+%   this option works. Why is this an option (unclear)?--SOLVED BY DELETING
+%   C COMMAND AND PATCHCLOSEMODE
+%
+%   % * Getting an error "Invalid figure handle" (line 974) when closing
+%   figure manually (clicking on "X" and not on the legend patch)--SOLVED
+%
+%   % * Make sure all sections have assertion tests to avoid warnings (see
+%   warnings on Line 442 for example)--SOLVED
+%
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * The 'i' input fixed
+%   % * DeleteD 10008 example
+%   % * The aabb mode seems to only allow one AABB to be entered. This is
+%   fine and makes sense, see for example test 20005, but seems like we
+%   should document this in the header comments--SOLVED
+%
+% (new release)
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu

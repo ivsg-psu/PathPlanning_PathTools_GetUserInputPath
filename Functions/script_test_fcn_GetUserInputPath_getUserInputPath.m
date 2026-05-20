@@ -393,7 +393,7 @@ end
 % Test figures start with 2
 
 % Commented out since automatic testing will not work with manual inputs
-if 1==1
+if 1==0
 
     %% TEST case: invalid inputType throws error
     figNum = 20002;
