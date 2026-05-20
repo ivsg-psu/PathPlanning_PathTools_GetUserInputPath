@@ -18,17 +18,10 @@
 % 2026_05_15 by Jaime Rodriguez
 % - In script_test_fcn_GetUserInputPath_getUserInputPath
 %   % * Added interactive demo cases for the new inputType argument:
-%   %   % 'path', 'points', and 'patch'.
-%   % * Added interactive demo cases for patchCloseMode:
-%   %   % 'ordered' and 'nearest_free_endpoint'.
-%   % * Added fail-condition tests for invalid inputType and invalid
-%   %   % patchCloseMode inputs.
+%   %   % 'path', 'points', 'patch' and 'aabb'.
 %   % * Updated the test script to match the new function signature by adding interactive
-%   %   % demo cases for the new inputType argument and patchCloseMode argument. 
-%   % * The script now includes demos for path, points, patch with ordered close mode, 
-%   %   % patch with nearest_free_endpoint close mode, and patch mode with fewer than 3 points. 
-%   % * Added fail-condition tests for invalid inputType and invalid
-%   %   % patchCloseMode values. 
+%   %   % demo cases for the new inputType argument. 
+%   % * The script now includes demos for path, points, patch and aabb and patch mode with fewer than 3 points. 
 
 % TO-DO:
 %
@@ -38,17 +31,18 @@
 %   the code incorrectly closes the points by connecting many to the first
 %   one. Seems that "c" should just close only the current path, not many
 %   paths. Not sure if this is related to patchCloseMode - not sure how
-%   this option works. Why is this an option (unclear)?
+%   this option works. Why is this an option (unclear)?--SOLVED BY DELETING
+%   C COMMAND AND PATCHCLOSEMODE
 %
 %   % * Getting an error "Invalid figure handle" (line 974) when closing
-%   figure manually (clicking on "X" and not on the legend patch)
+%   figure manually (clicking on "X" and not on the legend patch)--SOLVED
 %
 %   % * The aabb mode seems to only allow one AABB to be entered. This is
 %   fine and makes sense, see for example test 20005, but seems like we
-%   should document this in the header comments
+%   should document this in the header comments--SOLVED
 %
 %   % * Make sure all sections have assertion tests to avoid warnings (see
-%   warnings on Line 442 for example)
+%   warnings on Line 442 for example)--SOLVED
 
 
 %% Set up the workspace
@@ -103,7 +97,7 @@ if 1==0
 	figure(figNum); clf;
 
 	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch', 'ordered');
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -136,7 +130,7 @@ if 1==0
 	figure(figNum); clf;
 
 	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -161,7 +155,7 @@ if 1==0
 		0 1
 		];
 
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -181,7 +175,7 @@ if 1==0
 		1 1
 		];
 
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','ordered');
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -440,7 +434,7 @@ if 1==1
     startingXY = [];
 
     try
-    	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'invalid_input_type');
+    	fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'invalid_input_type');
     	error('Test failed: invalid inputType did not throw an error.');
     catch ME
     	assert(contains(ME.message,'inputType must be one of'));
@@ -448,22 +442,6 @@ if 1==1
     close(figNum);
     close all;
     fprintf(1,'Figure: 2XXXXXX: TEST mode cases\n');
-
-    %% TEST case: invalid patchCloseMode throws error
-    figNum = 20003;
-    titleString = sprintf('TEST case: invalid patchCloseMode throws error');
-    fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-    figure(figNum); clf;
-
-    startingXY = [];
-
-    try
-    	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch','invalid_patch_close_mode');
-    	error('Test failed: invalid patchCloseMode did not throw an error.');
-    catch ME
-    	assert(contains(ME.message,'patchCloseMode must be one of'));
-    end
-    close(figNum);
 
     %% TEST case: testing with geoplot in patch mode
     figNum = 20004;
@@ -475,7 +453,7 @@ if 1==1
     set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
 
     startingXY = [];
-    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch', 'ordered');
+    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
 
     % sgtitle(titleString, 'Interpreter','none');
 
@@ -502,7 +480,7 @@ if 1==1
     set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
 
     startingXY = [];
-    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'aabb', 'ordered');
+    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'aabb');
 
     % sgtitle(titleString, 'Interpreter','none');
 
