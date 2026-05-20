@@ -70,6 +70,25 @@
 %   % * Added 'c' key command in path mode to visually close separated
 %   %   subpaths by connecting nearest available free endpoints without
 %   %   modifying the returned pathXY.
+%
+% 2026_05_19 by Jaime Rodriguez
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added 'aabb' inputType, where the user selects two opposite corners
+%   %   and the function returns the corresponding axis-aligned bounding box.
+%   % * Added support for filled patch rendering in normal XY axes using
+%   %   separate patch objects underneath the editable user-selected outline.
+%   % * Added support for filled patch rendering in GeographicAxes using
+%   %   geopolyshape and geoplot.
+%   % * Updated patch drawing so that right-click [NaN NaN] separators allow
+%   %   the user to create multiple independent patch areas.
+%   % * Updated patch drawing so that the editable outline remains visible
+%   %   above the filled patch area.
+%   % * Updated GeographicAxes support for path, points, patch, and aabb
+%   %   drawing modes.
+%   % * Updated GeographicAxes panning behavior so map limits are shifted
+%   %   consistently using latitude and longitude limits.
+%   % * Added updateLineObject helper function to update either normal plot
+%   %   objects or geographic plot objects depending on the axes type.
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu

@@ -32,26 +32,23 @@
 
 % TO-DO:
 %
-% 2026_05_18 by Sean Brennan, sbrennan@psu.edu
+% 2026_05_19 by Sean Brennan, sbrennan@psu.edu
 % - In script_test_fcn_GetUserInputPath_getUserInputPath
-%   % * In the path mode, if someone clicks "c", the code does not let user
-% continue making additional path inputs. After presssing "c", "d", "i",
-% "-" do not work anymore (see for example Demo 10006)
-%   % * Pressing "c" adds a comment "Path free-endpoint closure is ON" There
-% should be no comments when using this function because this function is
-% almost always called from inside other functions that are printing to the
-% screen. So there should be no print statements to the screen
-%   % * In patch mode, the right click does not allow the user to start another
-% patch. Each click just creates more points in prior patch
-%   % * Seems we need "AABB" mode where user clicks 2 points and the code
-% returns the AABB, and makes a box showing the AABB. This one is a bit
-% tricky since the user can enter any 2 corners so code will have to ID
-% lowest XY and highest XY, and the definition of lowest and highest may
-% change depending on whether in normal axis mode or geographic axes.
-%   % * Modes ("patch", "points", etc.) need to be tested with GeographicAxes
-% (geoplots). See for example test 20004. Calling a patch mode with
-% geographic axes fails even without openining.
-
+%   % * In the path mode, for example demo 10001, if someone clicks "c",
+%   the code incorrectly closes the points by connecting many to the first
+%   one. Seems that "c" should just close only the current path, not many
+%   paths. Not sure if this is related to patchCloseMode - not sure how
+%   this option works. Why is this an option (unclear)?
+%
+%   % * Getting an error "Invalid figure handle" (line 974) when closing
+%   figure manually (clicking on "X" and not on the legend patch)
+%
+%   % * The aabb mode seems to only allow one AABB to be entered. This is
+%   fine and makes sense, see for example test 20005, but seems like we
+%   should document this in the header comments
+%
+%   % * Make sure all sections have assertion tests to avoid warnings (see
+%   warnings on Line 442 for example)
 
 
 %% Set up the workspace
@@ -479,6 +476,33 @@ if 1==1
 
     startingXY = [];
     pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch', 'ordered');
+
+    % sgtitle(titleString, 'Interpreter','none');
+
+    % Check variable types
+    assert(isnumeric(pathXY));
+
+    % Check variable sizes
+    assert(size(pathXY,1)>=1);
+    assert(size(pathXY,2)==2);
+
+    % Check variable values
+    % User defined
+
+    % % Make sure plot opened up
+    % assert(isequal(get(gcf,'Number'),figNum));
+
+    %% TEST case: testing with geoplot in patch mode
+    figNum = 20005;
+    titleString = sprintf('TEST case: geoplot in patch mode');
+    fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+    figure(figNum); clf;
+
+    fcn_plotRoad_plotLL([],[],(figNum));
+    set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+    startingXY = [];
+    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'aabb', 'ordered');
 
     % sgtitle(titleString, 'Interpreter','none');
 
