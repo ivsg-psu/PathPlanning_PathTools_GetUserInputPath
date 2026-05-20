@@ -152,12 +152,14 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   %   consistently using latitude and longitude limits.
 %   % * Added updateLineObject helper function to update either normal plot
 %   %   objects or geographic plot objects depending on the axes type.
-
-
+%
+% 2026_05_20 by Jaime Rodriguez
+% - In fcn_GetUserInputPath_getUserInputPath
+% (add information here)
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
-%   % - Add motion blur model, maybe?
+%   % - Add to-do items here
 
 
 %% Debugging and Input checks

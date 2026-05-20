@@ -22,10 +22,8 @@
 %   % * Updated the test script to match the new function signature by adding interactive
 %   %   % demo cases for the new inputType argument. 
 %   % * The script now includes demos for path, points, patch and aabb and patch mode with fewer than 3 points. 
-
-% TO-DO:
 %
-% 2026_05_19 by Sean Brennan, sbrennan@psu.edu
+% 2026_05_20 by Jaime Rodriguez
 % - In script_test_fcn_GetUserInputPath_getUserInputPath
 %   % * In the path mode, for example demo 10001, if someone clicks "c",
 %   the code incorrectly closes the points by connecting many to the first
@@ -37,12 +35,21 @@
 %   % * Getting an error "Invalid figure handle" (line 974) when closing
 %   figure manually (clicking on "X" and not on the legend patch)--SOLVED
 %
+%   % * Make sure all sections have assertion tests to avoid warnings (see
+%   warnings on Line 442 for example)--SOLVED
+
+% TO-DO:
+%
+% 2026_05_20 by Jaime Rodriguez
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * The 'i' input does not work
+%   % * Delete 10008 example
+
+%
 %   % * The aabb mode seems to only allow one AABB to be entered. This is
 %   fine and makes sense, see for example test 20005, but seems like we
 %   should document this in the header comments--SOLVED
-%
-%   % * Make sure all sections have assertion tests to avoid warnings (see
-%   warnings on Line 442 for example)--SOLVED
+
 
 
 %% Set up the workspace
