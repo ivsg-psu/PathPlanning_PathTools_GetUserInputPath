@@ -16,7 +16,7 @@ Search for this, and you will find!
   </h2>
 
   <pre align="center">
-    <img src=".\Images\GetUserInputPath.jpg" alt="main getuserinput picture" width="640" height="427">
+    <img src=".\Images\fcn_GetUserInputPath_getUserInputPath_Reber.png" alt="main getuserinput picture" width="832" height="505">
     <!--figcaption>Fig.1 - The typical progression of map generation.</figcaption -->
     <font size="-2">Photo by <a href="https://unsplash.com/@alicekat?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Alice Donovan Rouse</a> on <a href="https://unsplash.com/photos/sand-pathway-surrounding-grass-pZ61ZA8QgcY?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
     </font>
@@ -49,33 +49,45 @@ Search for this, and you will find!
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="structure">Repo Structure</a>
+    <li>
+      <a href="#directories">Repo Structure</a>
       <ul>
-        <li><a href="#directories">Top-Level Directories</li>
-        <li><a href="#dependencies">Dependencies</li>
+        <li><a href="#directories">Top-Level Directories</a></li>
+        <li><a href="#dependencies">Dependencies</a></li>
       </ul>
     </li>
-    <li><a href="#functions">Functions</li>
+    <li>
+      <a href="#functions">Functions</a>
       <ul>
-        <li><a href="#basic-support-functions">Basic Support Functions</li>
-        <ul>
-        </ul>
-        <li><a href="#core-functions">Core Functions</li>
-        <ul>
-          <li><a href="#fcn_laps_breakdataintolaps">fcn_Laps_breakDataIntoLaps - Core function of the repo, breaks data into laps</li>
-        </ul>
+        <li><a href="#basic-support-functions">Basic Support Functions</a></li>
+        <li><a href="#core-functions">Core Functions</a></li>
+        <li><a href="#fcn_getuserinputpath_getuserinputpath">fcn_GetUserInputPath_getUserInputPath</a></li>
       </ul>
-    <li><a href="#usage">Usage</a></li>
-     <ul>
-     <li><a href="#general-usage">General Usage</li>
-     <li><a href="#examples">Examples</li>
-     <li><a href="#definition-of-endpoints">Definition of Endpoints</li>
-     </ul>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
+    </li>
+    <li>
+      <a href="#usage">Usage</a>
+      <ul>
+        <li><a href="#general-usage">General Usage</a></li>
+        <li><a href="#examples">Examples</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#geographicaxes-usage">GeographicAxes Usage</a>
+    </li>
+    <li>
+      <a href="#interactive-controls">Interactive Controls</a>
+    </li>
+    <li>
+      <a href="#license">License</a>
+    </li>
+    <li>
+      <a href="#major-release-versions">Major Release Versions</a>
+    </li>
+    <li>
+      <a href="#contact">Contact</a>
+    </li>
   </ol>
 </details>
-
 ***
 
 <!-- ABOUT THE PROJECT -->
@@ -83,7 +95,11 @@ Search for this, and you will find!
 
 <!--[![Product Name Screen Shot][product-screenshot]](https://example.com)-->
 
-(add details here))
+This repository contains MATLAB tools for interactively collecting user-defined geometric data from figures. The core function, `fcn_GetUserInputPath_getUserInputPath`, lets users click directly on a plot or map to create paths, point sets, filled patches, or axis-aligned bounding boxes.
+
+The tool supports standard XY axes as well as MATLAB `GeographicAxes`, making it suitable for both regular plots and map-based workflows. It can be used to manually trace road boundaries, lane edges, obstacles, map regions, or other spatial features and return the selected data as structured MATLAB coordinate arrays.
+
+Supported drawing modes include `path`, `points`, `patch`, and `aabb`. The function also supports right-click `[NaN NaN]` separators for splitting paths or creating independent patch areas, as well as point insertion, deletion, dragging, and view panning during interactive input.
 
 <a href="#pathplanning_pathtools_getuserinputpath">Back to top</a>
 
@@ -150,13 +166,32 @@ The following are the top level directories within the repository:
 
 #### fcn_GetUserInputPath_getUserInputPath
 
-The function fcn_GetUserInputPath_getUserInputPath is the core function for this repo. This is a function for the user to click on the figure to generate XY path until the user hits the "return" key. If the user right-clicks, it inserts a [nan nan] row which effectively creates a gap in the plot. If the user hits the "minus" or hyphen key, it removes the most recent point.
+`fcn_GetUserInputPath_getUserInputPath` is the core function of this repository. It provides an interactive MATLAB interface for collecting user-defined geometry directly from a figure. The user clicks on a standard XY plot or on a MATLAB `GeographicAxes` map, and the function returns the selected coordinates as a MATLAB array.
 
-As an optional input, the function can start with a startingXY point list, plotting this first.
+The function supports four drawing modes:
+
+- `path`: collects connected line segments from user-selected points.
+- `points`: collects discrete points without connecting them.
+- `patch`: creates filled polygonal areas from user-selected points.
+- `aabb`: creates one axis-aligned bounding box from two opposite corners.
+
+Right-clicking inserts a `[NaN NaN]` row, which separates independent path or patch sections. This allows the user to define multiple disconnected paths or multiple independent patch areas within a single function call.
+
+The function also supports basic interactive editing:
+
+- `-`: removes the most recent point.
+- `d`: deletes the closest selected point.
+- `i`: inserts a new point into the nearest existing segment.
+- Click-drag: moves an existing point or pans the current view.
+- `Return`: finishes the user input and returns the selected data.
+
+For `aabb` mode, the function is intended to define one bounding box per function call. The user selects two opposite corners, and the function returns a closed five-point rectangle. If additional points are selected, the second corner is updated rather than creating multiple boxes.
+
+The function can also start from an existing `startingXY` array, allowing previous user input to be loaded, displayed, edited, and returned again.
 
 <pre align="center">
   <img src=".\Images\fcn_GetUserInputPath_getUserInputPath.png" alt="fcn_GetUserInputPath_getUserInputPath picture" width="400" height="300">
-  <figcaption>Fig - The function fcn_GetUserInputPath_getUserInputPath is the core function in the repo, and takes user inputs in XY coordinates for a user-specified figure.</figcaption>
+  <figcaption>Fig - The function fcn_GetUserInputPath_getUserInputPath collects interactive user-defined geometry from standard XY axes and GeographicAxes.</figcaption>
   <!--font size="-2">Photo by <a href="https://unsplash.com/ko/@samuelchenard?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Samuel Chenard</a> on <a href="https://unsplash.com/photos/Bdc8uzY9EPw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></font -->
 </pre>
 
@@ -169,80 +204,122 @@ As an optional input, the function can start with a startingXY point list, plott
 <!-- Use this space to show useful examples of how a project can be used.
 Additional screenshots, code examples and demos work well in this space. You may
 also link to more resources. -->
+The main workflow is based on calling `fcn_GetUserInputPath_getUserInputPath` from an existing MATLAB figure. The figure can use either standard XY axes or MATLAB `GeographicAxes`.
+
+The function waits for the user to interactively select points and returns the selected coordinates when the `Return` key is pressed.
+
 
 ### General Usage
 
-Each of the functions has an associated test script, using the convention
-
-```sh
-script_test_fcn_fcnname
 ```
+pathXY = fcn_GetUserInputPath_getUserInputPath(startingXY, figNum, inputType);
+````
+Where:
+- startingXY is an optional Nx2 array of existing points to load and edit.
+- figNum is the MATLAB figure number where the user input should be collected.
+- inputType defines the drawing mode.
+Supported values for `inputType`:
 
-where fcnname is the function name as listed above.
-
-As well, each of the functions includes a well-documented header that explains inputs and outputs. These are supported by MATLAB's help style so that one can type:
-
-```sh
-help fcn_fcnname
-```
-
-for any function to view function details.
-
-<a href="#pathplanning_pathtools_getuserinputpath">Back to top</a>
+     * 'path'
+     * 'points'
+     * 'patch'
+     * 'aabb'
 
 ***
 
 ### Examples
 
-1. Run the main script to set up the workspace and demonstrate main outputs, including the figures included here:
+1. Path mode
 
-   ```sh
-   script_demo_Laps
-   ```
+Use path mode to collect connected line segments.
 
-    This exercises the main function of this code.
+Left-click adds points to the path. Right-click inserts a [NaN NaN] separator, allowing the user to start a new disconnected path section.
 
-2. After running the main script to define the included directories for utility functions, one can then navigate to the Functions directory and run any of the functions or scripts there as well. All functions for this library are found in the Functions sub-folder, and each has an associated test script. Run any of the various test scripts; each can work as a stand-alone script.
+<pre align="center">
+  <img src=".\Images\path_mode.png" alt="fcn_GetUserInputPath_getUserInputPath picture" width="428" height="270"
+  4">
+  <figcaption>Fig - Example of path mode, where user-selected points are connected as continuous line segments. </figcaption>
+  <!--font size="-2">Photo by <a href="https://unsplash.com/ko/@samuelchenard?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Samuel Chenard</a> on <a href="https://unsplash.com/photos/Bdc8uzY9EPw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></font -->
+</pre>
+
+2. Points mode
+
+Use points mode to collect discrete points without connecting them.
+
+<pre align="center">
+  <img src=".\Images\points_mode.png" alt="fcn_GetUserInputPath_getUserInputPath picture" width="441" height="305"
+  4">
+  <figcaption>Fig - Example of points mode, where user-selected locations are displayed as individual discrete points without connecting lines.</figcaption>
+  <!--font size="-2">Photo by <a href="https://unsplash.com/ko/@samuelchenard?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Samuel Chenard</a> on <a href="https://unsplash.com/photos/Bdc8uzY9EPw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></font -->
+</pre>
+
+3. Patch mode
+
+Use patch mode to define filled polygonal areas.
+
+<pre align="center">
+  <img src=".\Images\patch_mode.png" alt="fcn_GetUserInputPath_getUserInputPath picture" width="440" height="301"
+  4">
+  <figcaption>Fig - Example of points mode, where user-selected locations are displayed as individual discrete points without connecting lines.</figcaption>
+  <!--font size="-2">Photo by <a href="https://unsplash.com/ko/@samuelchenard?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Samuel Chenard</a> on <a href="https://unsplash.com/photos/Bdc8uzY9EPw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></font -->
+</pre>
+
+When at least three valid points are available, the selected points define a filled patch. Right-click inserts a [NaN NaN] separator, allowing multiple independent patch areas to be defined in the same call.
+
+4. AABB mode
+
+Use aabb mode to define one axis-aligned bounding box from two opposite corners.
+
+<pre align="center">
+  <img src=".\Images\aabb_mode.png" alt="fcn_GetUserInputPath_getUserInputPath picture" width="440" height="301"
+  4">
+  <figcaption>Fig - Example of points mode, where user-selected locations are displayed as individual discrete points without connecting lines.</figcaption>
+  <!--font size="-2">Photo by <a href="https://unsplash.com/ko/@samuelchenard?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Samuel Chenard</a> on <a href="https://unsplash.com/photos/Bdc8uzY9EPw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></font -->
+</pre>
+
+The returned result is a closed four-point rectangle. This mode is intended to define one AABB per function call. If additional points are selected, the second corner is updated rather than creating additional boxes.
 
 <a href="#pathplanning_pathtools_getuserinputpath">Back to top</a>
 
-***
+<!-- GeographicAxes -->
+## GeographicAxes Usage
 
-### Definition of Endpoints
+The same function can be used on MATLAB GeographicAxes.
+```
+figNum = 5;
+figure(figNum); clf;
 
-The codeset uses two types of zone definitions:
+fcn_plotRoad_plotLL([], [], figNum);
+set(gca, 'MapCenter', [40.793695059681355 -77.864213807810174], 'ZoomLevel', 20);
 
-1. A point location defined by the center and radius of the zone, and number of points that must be within this zone. An example of this would be "travel from home" or "to grandma's house". The point "zone" specification is given by an X,Y center location and a radius in the form of [X Y radius], as a 3x1 matrix. Whenever the path passes within the radius with a specified number of points within that radius, the minimum distance point then "triggers" the zone.
+pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'path');
+```
 
-    <img src=".\Images\point_zone_definition.png" alt="point_zone_definition picture" width="200" height="200">
+This allows users to collect paths, points, patches, or AABBs directly from map-based views.
 
-2. A line segment. An example is the start line or finish line of a race. A runner has not started or ended the race without crossing these lines. For line segment conditions, the inputs are condition formatted as: [X_start Y_start; X_end Y_end] wherein start denotes the starting coordinate of the line segment, end denotes the ending coordinate of the line segment. The direction of start/end lines of the segment are defined such that a correct crossing of the line is in the positive cross-product direction defined from the vector from start to end of the segment.
+<pre align="center">
+  <img src=".\Images\GeographicAxes.png" alt="fcn_GetUserInputPath_getUserInputPath picture" width="471" height="313"
+  4">
+  <figcaption>Fig - Example of Geographic Axes map. </figcaption>
+  <!--font size="-2">Photo by <a href="https://unsplash.com/ko/@samuelchenard?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Samuel Chenard</a> on <a href="https://unsplash.com/photos/Bdc8uzY9EPw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></font -->
+</pre>
 
-    <img src=".\Images\linesegment_zone_definition.png" alt="linesegment_zone_definition picture" width="200" height="200">
 
-These two conditions can be mixed and matched, so that one could, for example, find every lap of data where someone went from a race start line (defined by a line segment) to a specific mountain peak defined by a point and radius.
+<!-- INTERACTIVE CONTROLS -->
+## Interactive Controls
+During interaction, the following controls are available:
 
-The two zone types above can be used to define three types of conditions:
+| Action                      | Behavior                                          |
+| --------------------------- | ------------------------------------------------- |
+| Left-click                  | Adds a point                                      |
+| Right-click                 | Inserts a `[NaN NaN]` separator                   |
+| Click-drag on a point       | Moves the selected point                          |
+| Click-drag away from points | Pans the current view                             |
+| `-`                         | Removes the most recent point                     |
+| `d`                         | Deletes the closest point                         |
+| `i`                         | Inserts a point into the nearest existing segment |
+| `Return`                    | Finishes input and returns the selected data      |
 
-1. A start condition - where a lap starts. The lap does not end until and end condition is met.
-2. An end condition - where a lap ends. The lap cannot end until this condition is met.
-3. An excursion condition (optional) - a condition that must be met after the start point, and before the end point. The excursion condition must be met before the end point is counted.
-
-Why is an excursion point needed? Consider an example: it is common for the start line of a marathon to be quite close to the start line, sometimes even just a few hundred feet after the start line. This setup is for the practical reason that runners do not want to make long walks to/from starting locations to finish location either before, and definitely not after, such a race. As a consequence, it is common that, immediately after the start of the race, a runner will cross the finish line before actually finishing the race. This happens in field data collection when one accidentally passes a start/end station, and then backs up the vehicle to reset. In using these data recordings, we would not want these small segment to count as a complete laps, for example the 100-ish meter distance to be counted as a marathon run. Rather, one would require that the recorded data enter some excursion zone far away from the starting line for such a "lap" to count. Thus, this laps code allows one to define an excursion point as a location far out into the course that one must "hit" before the finish line is counted as the actual "finish" of the lap.
-
-* For each lap when there are repeats, the resulting laps of data include the lead-in and fade-out data, namely the datapoint immediately before the start condition was met, and the datapoint after the end condition is met. THIS CREATES REPLICATE DATA. However, this allows better merging of data for repeated laps, for example averaging data exactly from start to finish, or to more exactly calculate velocities on entry and exit of a lap by using windowed averages or filters.
-
-* Points inside the lap can be set for the point-type zones. These occur as optional input arguments in fcn_Laps_findPointZoneStartStopAndMinimum and in the core definition of a point zone as the 2nd argument. For example, the following code:
-
-  ```Matlab
-  start_definition = [10 3 0 0]; % Radius 10, 3 points must pass near [0 0]
-  ```
-
-  requires 3 points to occur within the start zone area.
-
-<a href="#pathplanning_pathtools_getuserinputpath">Back to top</a>
-
-***
 
 <!-- LICENSE -->
 ## License
