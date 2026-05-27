@@ -44,6 +44,20 @@
 %   fine and makes sense, see for example test 20005, but seems like we
 %   should document this in the header comments--SOLVED
 
+% 2026_05_27 by Jaime Rodriguez
+%   % * Added interactive demo cases for the new 'directedpath' inputType.
+%   % * Added a normal XY axes demo for 'directedpath' to verify that
+%   %   consecutive user-selected points are connected using direction arrows.
+%   % * Added a GeographicAxes demo for 'directedpath' to verify that directed
+%   %   paths can be drawn on map-based axes.
+%   % * Added interactive demo cases for the new 'onesidedsegment' inputType.
+%   % * Added a normal XY axes demo for 'onesidedsegment' to verify that a
+%   %   two-point segment is drawn with a perpendicular arrow indicating the
+%   %   positive/visible side.
+%   % * Added a GeographicAxes demo for 'onesidedsegment' to verify that the
+%   %   side indicator can be drawn on map-based axes.
+
+
 % TO-DO:
 %
 % 2026_05_20 by Jaime Rodriguez
@@ -114,8 +128,49 @@ if 1==0
 	assert(size(pathXY,1)>=1);
 	assert(size(pathXY,2)==2);    
 
-    
-    	%% DEMO case: points inputType
+   
+ %% DEMO case: directedpath inputType in normal XY axes
+	figNum = 10011;
+	titleString = sprintf('DEMO case: directedpath inputType in normal XY axes');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+	axis equal;
+	grid on;
+	hold on;
+
+	startingXY = [
+		];
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'directedpath');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+
+    %% DEMO case: onesidedsegment inputType in normal XY axes
+	figNum = 10014;
+	titleString = sprintf('DEMO case: onesidedsegment inputType in normal XY axes');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+	axis equal;
+	grid on;
+	hold on;
+
+	startingXY = [];
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'onesidedsegment');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+
+    %% DEMO case: points inputType
 	figNum = 10007;
 	titleString = sprintf('DEMO case: points inputType');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
@@ -316,6 +371,45 @@ if 1==0
 	% % Make sure plot opened up
 	% assert(isequal(get(gcf,'Number'),figNum));
 
+	%% DEMO case: directedpath inputType with geoplot
+	figNum = 10012;
+	titleString = sprintf('DEMO case: directedpath inputType with geoplot');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	fcn_plotRoad_plotLL([],[],(figNum));
+	set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+    startingXY = [];
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'directedpath');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+
+    %% DEMO case: onesidedsegment inputType with geoplot
+	figNum = 10013;
+	titleString = sprintf('DEMO case: onesidedsegment inputType with geoplot');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	fcn_plotRoad_plotLL([],[],(figNum));
+	set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+	startingXY = [];
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'onesidedsegment');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
 	%% DEMO case: testing with geoplot with previous data
 	figNum = 10005;
 	titleString = sprintf('DEMO case: testing with geoplot with previous data');
@@ -440,9 +534,9 @@ if 1==0
     % % Make sure plot opened up
     % assert(isequal(get(gcf,'Number'),figNum));
 
-    %% TEST case: testing with geoplot in patch mode
+    %% TEST case: testing with geoplot in aabb mode
     figNum = 20005;
-    titleString = sprintf('TEST case: geoplot in patch mode');
+    titleString = sprintf('TEST case: geoplot in aabb mode');
     fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
     figure(figNum); clf;
 

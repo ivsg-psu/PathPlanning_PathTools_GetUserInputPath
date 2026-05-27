@@ -22,6 +22,15 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %              This mode is intended to define one AABB per function call.
 %              If additional points are selected, the second corner is
 %              updated rather than creating multiple boxes.
+% 
+%   'directedpath' - the user-selected points are displayed as a directed
+%                    path using arrows between consecutive points.
+%
+%   'onesidedsegment' - the user selects two points defining a segment.
+%                       A small perpendicular arrow is drawn at the midpoint
+%                       to indicate the positive/visible side of the segment.
+%                       The positive side is the left side when moving from
+%                       the start point to the end point.
 %
 % If the user right-clicks, the function inserts a [nan nan] row, which
 % effectively creates a gap in the plotted path. If the user hits the
@@ -174,6 +183,16 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   fine and makes sense, see for example test 20005, but seems like we
 %   should document this in the header comments--SOLVED
 
+% 2026_05_27 by Jaime Rodriguez
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added 'directedpath' inputType to display user-selected paths with
+%   %   direction arrows.
+%   % * Added 'onesidedsegment' inputType to display two-point segments with
+%   %   a side indicator showing the positive/visible side.
+%   % * Added support for both new modes in normal XY axes and GeographicAxes.
+%   % * Added helper functions to draw/update arrow objects and keep only the
+%   %   two required points in onesidedsegment mode.
+
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
 %   % - Add to-do items here
@@ -268,6 +287,10 @@ end
 %   'points' - points only, no lines
 %   'patch'  - closed polygon/patch
 %   'aabb'   - axis aligned bounding box from two selected cornerss
+%   'directedpath'   - connected line segments with arrows
+%   'onesidedsegment' - displays a two-point segment with a perpendicular 
+%                       arrow indicating the positive/visible side.
+
 inputType = 'path'; % default
 if 3 <= nargin
 	temp = varargin{3};
@@ -276,9 +299,9 @@ if 3 <= nargin
 	end
 end
 
-validInputTypes = {'path','points','patch', 'aabb'};
+validInputTypes = {'path','points','patch','aabb','directedpath','onesidedsegment'};
 if ~any(strcmp(inputType,validInputTypes))
-	error('inputType must be one of: path, points, patch or aabb');
+	error('inputType must be one of: path, points, patch, aabb, directedpath, or onesidedsegment');
 end
 
 %% Solve for the circle
@@ -366,7 +389,7 @@ switch inputType
 		end
 
 	case 'aabb'
-		if flag_isGeoPlot
+	       if flag_isGeoPlot
 			hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
 				'r.-', ...
 				'MarkerFaceColor','r', ...
@@ -376,10 +399,36 @@ switch inputType
 				'r.-', ...
 				'MarkerFaceColor','r', ...
 				'DisplayName','User selected aabb');
+        end
+
+    case 'directedpath'
+		if flag_isGeoPlot
+			hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
+				'r.', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected directed path');
+		else
+			hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+				'r.', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected directed path');
 		end
 
-	otherwise
-		error('Unknown inputType. Use path, points, patch, or aabb.');
+	case 'onesidedsegment'
+		if flag_isGeoPlot
+			hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected one-sided segment');
+		else
+			hPoints = plot(pathXY(:,1), pathXY(:,2), ...
+				'r.-', ...
+				'MarkerFaceColor','r', ...
+				'DisplayName','User selected one-sided segment');
+		end
+
+		otherwise
+		error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
 end
 
 if isempty(hPoints) || ~isgraphics(hPoints)
@@ -388,6 +437,9 @@ end
 
 % Handles for filled patch objects in patch mode
 hPatchObjects = gobjects(0);
+
+% Handles for quiver objects in directed path and one-sided segment modes
+hQuiverObjects = gobjects(0);
 
 % Freeze the axis limits so MATLAB does not auto-zoom when points are added
 if ~flag_isGeoPlot
@@ -441,8 +493,10 @@ if strcmp(inputType,'aabb')
 	end
 end
 
-if ishandle(figNum)
-	close(figNum);
+% If in onesidedsegment mode, return only the two defining points
+if strcmp(inputType,'onesidedsegment')
+	pathXY = fcn_INTERNAL_keepOnlyFirstTwoValidPoints(pathXY);
+	closedAreaXY = [];
 end
 
 function updateDrawing()
@@ -469,14 +523,23 @@ function updateDrawing()
 			aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY);
 			updateLineObject(hPoints, aabbXY);
 
-			if size(aabbXY,1) >= 5
+            if size(aabbXY,1) >= 5
 				closedAreaXY = aabbXY(1:end-1,:);
 			else
 				closedAreaXY = [];
-			end
+            end
 
-		otherwise
-			error('Unknown inputType. Use path, points, patch, or aabb.');
+        case 'directedpath'
+			updateLineObject(hPoints, pathXY);
+			updateDirectedPathObjects(pathXY);
+
+		case 'onesidedsegment'
+			oneSidedSegmentXY = fcn_INTERNAL_keepOnlyFirstTwoValidPoints(pathXY);
+			updateLineObject(hPoints, oneSidedSegmentXY);
+			updateOneSidedSegmentObjects(oneSidedSegmentXY);
+
+        otherwise
+			error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
 	end
 
 	drawnow;
@@ -577,11 +640,276 @@ end
 	end
 
 	% Keep clicked points/line above filled patches
+    if isgraphics(hPoints)
+		uistack(hPoints,'top');
+    end
+    end
+
+function deleteQuiverObjects()
+	% Deletes old quiver objects used by directed path and one-sided segment modes.
+
+	if ~isempty(hQuiverObjects)
+		for ith_quiver = 1:length(hQuiverObjects)
+			if isgraphics(hQuiverObjects(ith_quiver))
+				delete(hQuiverObjects(ith_quiver));
+			end
+		end
+	end
+
+	hQuiverObjects = gobjects(0);
+end
+
+    function updateDirectedPathObjects(directedPathXY)
+	% Draws arrows between consecutive valid points in directed path mode.
+	%
+	% In normal XY axes, arrows are drawn using quiver.
+	% In GeographicAxes, arrows are drawn manually using geoplot because
+	% quiver is not compatible with GeographicAxes in the same way.
+
+	deleteQuiverObjects();
+
+	subPaths = fcn_INTERNAL_splitPathByNaNs(directedPathXY);
+
+	for ith_subpath = 1:length(subPaths)
+
+		thisPathXY = subPaths{ith_subpath};
+
+		if size(thisPathXY,1) >= 2
+
+			if flag_isGeoPlot
+
+				% GeographicAxes case.
+				% pathXY is assumed to be [Latitude Longitude].
+				for ith_segment = 1:(size(thisPathXY,1)-1)
+
+					latStart = thisPathXY(ith_segment,1);
+					lonStart = thisPathXY(ith_segment,2);
+
+					latEnd = thisPathXY(ith_segment+1,1);
+					lonEnd = thisPathXY(ith_segment+1,2);
+
+					dLat = latEnd - latStart;
+					dLon = lonEnd - lonStart;
+
+					segmentLength = hypot(dLat,dLon);
+
+					if segmentLength <= 0
+						continue;
+					end
+
+					% Unit direction vector in latitude/longitude space
+					unitLat = dLat/segmentLength;
+					unitLon = dLon/segmentLength;
+
+					% Arrow head size, relative to segment length
+					arrowHeadLength = 0.25*segmentLength;
+					arrowHeadWidth  = 0.12*segmentLength;
+
+					% Base point of the arrow head
+					latBase = latEnd - arrowHeadLength*unitLat;
+					lonBase = lonEnd - arrowHeadLength*unitLon;
+
+					% Perpendicular vector
+					perpLat = -unitLon;
+					perpLon =  unitLat;
+
+					% Arrow head left and right points
+					latLeft = latBase + arrowHeadWidth*perpLat;
+					lonLeft = lonBase + arrowHeadWidth*perpLon;
+
+					latRight = latBase - arrowHeadWidth*perpLat;
+					lonRight = lonBase - arrowHeadWidth*perpLon;
+
+					% Draw main arrow shaft
+					hQuiverObjects(end+1) = geoplot(ax, ...
+						[latStart latEnd], ...
+						[lonStart lonEnd], ...
+						'r-', ...
+						'LineWidth',1.5, ...
+						'HandleVisibility','off'); %#ok<AGROW>
+
+					% Draw arrow head
+					hQuiverObjects(end+1) = geoplot(ax, ...
+						[latLeft latEnd latRight], ...
+						[lonLeft lonEnd lonRight], ...
+						'r-', ...
+						'LineWidth',1.5, ...
+						'HandleVisibility','off'); %#ok<AGROW>
+				end
+
+			else
+
+				% Normal XY axes case
+				xStart = thisPathXY(1:end-1,1);
+				yStart = thisPathXY(1:end-1,2);
+
+				dx = thisPathXY(2:end,1) - thisPathXY(1:end-1,1);
+				dy = thisPathXY(2:end,2) - thisPathXY(1:end-1,2);
+
+				hQuiverObjects(end+1) = quiver(ax, ...
+					xStart, yStart, dx, dy, ...
+					0, ...
+					'Color','r', ...
+					'LineWidth',1.5, ...
+					'MaxHeadSize',0.5, ...
+					'HandleVisibility','off'); %#ok<AGROW>
+			end
+		end
+	end
+
 	if isgraphics(hPoints)
 		uistack(hPoints,'top');
 	end
 end
+function updateOneSidedSegmentObjects(segmentXY)
+	% Draws a small perpendicular arrow showing the positive side of a segment.
+	% The positive side is the left side when moving from start point to end point.
 
+	deleteQuiverObjects();
+
+	validPoints = segmentXY(~any(isnan(segmentXY),2),:);
+
+	if size(validPoints,1) < 2
+		return;
+	end
+
+	pointStart = validPoints(1,:);
+	pointEnd   = validPoints(2,:);
+
+	dx = pointEnd(1) - pointStart(1);
+	dy = pointEnd(2) - pointStart(2);
+
+	segmentLength = hypot(dx,dy);
+
+	if segmentLength <= 0
+		return;
+	end
+
+	midPoint = 0.5*(pointStart + pointEnd);
+
+	% Positive side: left side when moving from start to end
+	normalVector = [-dy dx] ./ segmentLength;
+
+	arrowLength = 0.25 * segmentLength;
+
+if flag_isGeoPlot
+
+	% GeographicAxes case.
+	% pathXY is assumed to be [Latitude Longitude].
+	%
+	% Work in local meter coordinates instead of raw lat/lon degrees.
+	% This makes the perpendicular arrow visible and geometrically consistent
+	% on the map.
+
+	latStart = pointStart(1);
+	lonStart = pointStart(2);
+
+	latEnd = pointEnd(1);
+	lonEnd = pointEnd(2);
+
+	latRef = 0.5*(latStart + latEnd);
+
+	metersPerDegLat = 111320;
+	metersPerDegLon = 111320*cosd(latRef);
+
+	xStart_m = lonStart * metersPerDegLon;
+	yStart_m = latStart * metersPerDegLat;
+
+	xEnd_m = lonEnd * metersPerDegLon;
+	yEnd_m = latEnd * metersPerDegLat;
+
+	dx_m = xEnd_m - xStart_m;
+	dy_m = yEnd_m - yStart_m;
+
+	segmentLength_m = hypot(dx_m,dy_m);
+
+	if segmentLength_m <= 0
+		return;
+	end
+
+	midX_m = 0.5*(xStart_m + xEnd_m);
+	midY_m = 0.5*(yStart_m + yEnd_m);
+
+	% Positive side: left side when moving from start to end
+	normalX_m = -dy_m/segmentLength_m;
+	normalY_m =  dx_m/segmentLength_m;
+
+	% Side arrow length in meters
+	arrowLength_m = 0.18 * segmentLength_m;
+
+	xArrowStart_m = midX_m;
+	yArrowStart_m = midY_m;
+
+	xArrowEnd_m = midX_m + arrowLength_m*normalX_m;
+	yArrowEnd_m = midY_m + arrowLength_m*normalY_m;
+
+	latStartArrow = yArrowStart_m / metersPerDegLat;
+	lonStartArrow = xArrowStart_m / metersPerDegLon;
+
+	latEndArrow = yArrowEnd_m / metersPerDegLat;
+	lonEndArrow = xArrowEnd_m / metersPerDegLon;
+
+	% Draw perpendicular side indicator shaft
+	hQuiverObjects(end+1) = geoplot(ax, ...
+		[latStartArrow latEndArrow], ...
+		[lonStartArrow lonEndArrow], ...
+		'r-', ...
+		'LineWidth',4, ...
+		'HandleVisibility','off'); %#ok<AGROW>
+
+	% Arrow head in local meter coordinates
+	headLength_m = 0.20 * arrowLength_m;
+	headWidth_m  = 0.12 * arrowLength_m;
+
+	headTip_m  = [xArrowEnd_m yArrowEnd_m];
+	headBase_m = headTip_m - headLength_m*[normalX_m normalY_m];
+
+	arrowPerp_m = [-normalY_m normalX_m];
+
+	headLeft_m  = headBase_m + headWidth_m*arrowPerp_m;
+	headRight_m = headBase_m - headWidth_m*arrowPerp_m;
+
+	latHeadLeft  = headLeft_m(2) / metersPerDegLat;
+	lonHeadLeft  = headLeft_m(1) / metersPerDegLon;
+
+	latHeadRight = headRight_m(2) / metersPerDegLat;
+	lonHeadRight = headRight_m(1) / metersPerDegLon;
+
+	latHeadTip = headTip_m(2) / metersPerDegLat;
+	lonHeadTip = headTip_m(1) / metersPerDegLon;
+
+	% Draw arrow head left side
+	hQuiverObjects(end+1) = geoplot(ax, ...
+		[latHeadLeft latHeadTip], ...
+		[lonHeadLeft lonHeadTip], ...
+		'r-', ...
+		'LineWidth',4, ...
+		'HandleVisibility','off'); %#ok<AGROW>
+
+	% Draw arrow head right side
+	hQuiverObjects(end+1) = geoplot(ax, ...
+		[latHeadRight latHeadTip], ...
+		[lonHeadRight lonHeadTip], ...
+		'r-', ...
+		'LineWidth',4, ...
+		'HandleVisibility','off'); %#ok<AGROW>
+
+else
+
+	% Normal XY axes case
+	hQuiverObjects(end+1) = quiver(ax, ...
+		midPoint(1), midPoint(2), ...
+		arrowLength*normalVector(1), arrowLength*normalVector(2), ...
+		0, ...
+		'Color','r', ...
+		'LineWidth',3, ...
+		'MaxHeadSize',1.5, ...
+		'HandleVisibility','off'); %#ok<AGROW>
+end
+	if isgraphics(hPoints)
+		uistack(hPoints,'top');
+	end
+end
 
 	function legendItemClicked(~, event)
 		s = getappdata(figNum,'HoldPanState');
@@ -786,7 +1114,7 @@ end
 	x = currentPointXY(1);
 	y = currentPointXY(2);
 
-	if strcmp(inputType,'aabb')
+	if strcmp(inputType,'aabb') || strcmp(inputType,'onesidedsegment')
 		validRows = ~any(isnan(pathXY),2);
 		NvalidPoints = sum(validRows);
 
@@ -842,8 +1170,8 @@ end
 	% Get current cursor point
 	currentPointXY = getCurrentPointXY();
 
-	if strcmp(inputType,'aabb')
-		% aabb mode only keeps two corner points
+	if strcmp(inputType,'aabb') || strcmp(inputType,'onesidedsegment')
+		% aabb and onesidedsegment modes only keep two defining points
 		validRows = ~any(isnan(pathXY),2);
 		NvalidPoints = sum(validRows);
 
@@ -1166,5 +1494,30 @@ aabbXY = [
 	minFirstColumn  maxSecondColumn
 	minFirstColumn  minSecondColumn
 	];
+
+end
+
+function segmentXY = fcn_INTERNAL_keepOnlyFirstTwoValidPoints(pathXY)
+% Keeps only the first two valid points from pathXY.
+%
+% INPUTS:
+%   pathXY - Nx2 array, possibly containing NaN separator rows.
+%
+% OUTPUTS:
+%   segmentXY - up to 2x2 array containing the first two valid points.
+
+validPoints = pathXY(~any(isnan(pathXY),2),:);
+
+if isempty(validPoints)
+	segmentXY = [nan nan];
+	return;
+end
+
+if size(validPoints,1) == 1
+	segmentXY = validPoints;
+	return;
+end
+
+segmentXY = validPoints(1:2,:);
 
 end
