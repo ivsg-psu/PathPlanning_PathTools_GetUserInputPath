@@ -304,32 +304,9 @@ assert(isequal(get(gcf,'Number'),figNum));
 % See: https://patorjk.com/software/taag/#p=display&f=Big&t=GEOPLOT+CASES&x=none&v=4&h=4&w=80&we=false
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% DEMO case: testing with geoplot
-figNum = 10004;
-titleString = sprintf('DEMO case: testing with geoplot');
-fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
-figure(figNum); clf;
-
-fcn_plotRoad_plotLL([],[],(figNum));
-set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
-
-pathXY = [];
-hPoints = fcn_GetUserInputPath_getUserInputPath((pathXY),(figNum));
-
-% sgtitle(titleString, 'Interpreter','none');
-
-% Check variable types
-assert(ishandle(hPoints));
-
-% Check variable sizes
-assert(size(hPoints,1)==1);
-assert(size(hPoints,2)==1);
-
-% Check variable values
-% User defined
-
-% % Make sure plot opened up
-% assert(isequal(get(gcf,'Number'),figNum));
+% Geoplot figures start with 2
+close all;
+fprintf(1,'Figure: 2XXXXXX: GEOPLOT mode cases\n');
 
 %% DEMO case: testing with geoplot with previous data
 figNum = 10005;
@@ -348,7 +325,7 @@ LLAdata = [
     40.377836751959194 -79.888072325433768
     40.377773410098470 -79.888193024839410
     40.377716198258547 -79.888294948781976
-    40.377520043009973 -79.888603402818688
+    40.377530043009973 -79.888603402818688
     40.377489393700806 -79.888643635953898
     40.377448524718410 -79.888706667865804
     40.376353312922461 -79.887279732669882
@@ -390,6 +367,346 @@ assert(size(hPoints,2)==1);
 % assert(isequal(get(gcf,'Number'),figNum));
 
 
+%% DEMO case: empty data and empty inputType example
+figNum = 20001;
+titleString = sprintf('DEMO case: empty data and empty inputType example');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+pathXY = [];
+inputType = '';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and empty inputType - defaults to path
+figNum = 20002;
+titleString = sprintf('DEMO case: non-empty data and empty inputType - defaults to path');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+];
+
+inputType = '';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: empty data and explicit path inputType
+figNum = 20003;
+titleString = sprintf('DEMO case: empty data and explicit path inputType');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+];
+
+inputType = 'path';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and path inputType
+figNum = 20003;
+titleString = sprintf('DEMO case: non-empty data and path inputType');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+    nan nan
+    40.79365 -77.8642
+    40.79345 -77.8645
+    40.79375 -77.8642    
+];
+
+inputType = 'path';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and points inputType
+figNum = 20004;
+titleString = sprintf('DEMO case: non-empty data and points inputType');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+    nan nan
+    40.79365 -77.8642
+    40.79345 -77.8645
+    40.79375 -77.8642    
+];
+
+inputType = 'points';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and patch inputType
+figNum = 20005;
+titleString = sprintf('DEMO case: non-empty data and patch inputType');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+    nan nan
+    40.79365 -77.8642
+    40.79345 -77.8645
+    40.79375 -77.8642    
+];
+
+inputType = 'patch';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and patch inputType with fewer than 3 points - produces a line
+figNum = 20006;
+titleString = sprintf('DEMO case: non-empty data and patch inputType with fewer than 3 points - produces a line');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643  
+];
+
+inputType = 'patch';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and aabb inputType
+figNum = 20007;
+titleString = sprintf('DEMO case: non-empty data and aabb inputType');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+    40.79365 -77.8642 
+];
+
+inputType = 'aabb';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and directedpath inputType
+figNum = 20008;
+titleString = sprintf('DEMO case: non-empty data and directedpath inputType');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+    nan nan
+    40.79365 -77.8642
+    40.79345 -77.8645
+    40.79375 -77.8642    
+];
+
+inputType = 'directedpath';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+%% DEMO case: non-empty data and onesidedsegment inputType
+figNum = 20009;
+titleString = sprintf('DEMO case: non-empty data and onesidedsegment inputType');
+fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+figure(figNum); clf;
+
+fcn_plotRoad_plotLL([],[],(figNum));
+set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+
+pathXY = [
+    40.79385 -77.8646
+    40.79375 -77.8643
+    40.79355 -77.864
+    nan nan
+    40.79365 -77.8642
+    40.79345 -77.8645
+    40.79375 -77.8642    
+];
+
+inputType = 'onesidedsegment';
+hPoints = [];
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, (inputType), (hPoints), (figNum));
+
+% Check variable types
+assert(ishandle(hPoints));
+
+% Check variable sizes
+assert(size(hPoints,1)==1);
+assert(size(hPoints,2)==1);
+
+% Check variable values
+% User defined
+
+% Make sure plot opened up
+assert(isequal(get(gcf,'Number'),figNum));
+
+
+
 %% Test cases start here. These are very simple, usually trivial
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -404,13 +721,15 @@ assert(size(hPoints,2)==1);
 %
 % See: https://patorjk.com/software/taag/#p=display&f=Big&t=TESTS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Test figures start with 2
+% Test figures start with 3
+close all;
+fprintf(1,'Figure: 3XXXXXX: TEST mode cases - none because this is a plotting function\n');
 
 % Commented out since automatic testing will not work with manual inputs
 if 1==0
 
     %% TEST case: invalid inputType throws error
-    figNum = 20002;
+    figNum = 30001;
     titleString = sprintf('TEST case: invalid inputType throws error');
     fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
     figure(figNum); clf;
@@ -428,7 +747,7 @@ if 1==0
     fprintf(1,'Figure: 2XXXXXX: TEST mode cases\n');
 
     %% TEST case: testing with geoplot in patch mode
-    figNum = 20004;
+    figNum = 30004;
     titleString = sprintf('TEST case: geoplot in patch mode');
     fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
     figure(figNum); clf;
@@ -455,7 +774,7 @@ if 1==0
     % assert(isequal(get(gcf,'Number'),figNum));
 
     %% TEST case: testing with geoplot in patch mode
-    figNum = 20005;
+    figNum = 30005;
     titleString = sprintf('TEST case: geoplot in patch mode');
     fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
     figure(figNum); clf;
