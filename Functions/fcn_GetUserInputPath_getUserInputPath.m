@@ -24,13 +24,15 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %              updated rather than creating multiple boxes.
 % 
 %   'directedpath' - the user-selected points are displayed as a directed
-%                    path using arrows between consecutive points.
+%                    path using arrows between consecutive points. This mode
+%                    supports both normal XY axes and GeographicAxes.
 %
-%   'onesidedsegment' - the user selects two points defining a segment.
-%                       A small perpendicular arrow is drawn at the midpoint
-%                       to indicate the positive/visible side of the segment.
+%   'onesidedsegment' - the user selects pairs of points defining one-sided
+%                       segments. A small perpendicular arrow is drawn to
+%                       indicate the positive/visible side of each segment.
 %                       The positive side is the left side when moving from
-%                       the start point to the end point.
+%                       the start point to the end point. Multiple segments
+%                       can be separated using right-click [nan nan] rows.
 %
 % If the user right-clicks, the function inserts a [nan nan] row, which
 % effectively creates a gap in the plotted path. If the user hits the
@@ -65,6 +67,15 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %                  'aabb'   - displays an axis-aligned bounding box using
 %                             two selected opposite corners. This mode
 %                             defines one AABB per function call.
+%
+%                  'directedpath' - displays selected points as a directed
+%                                   path using arrows between consecutive
+%                                   points.
+%                  'onesidedsegment' - displays two-point segments with a
+%                                      perpendicular arrow indicating the
+%                                      positive/visible side. The positive
+%                                      side is the left side when moving
+%                                      from start point to end point.
 
 
 % OUTPUTS:
@@ -90,6 +101,12 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %
 %      % Example using aabb mode
 %      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'aabb')
+%
+%      % Example using directedpath mode
+%      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'directedpath')
+%
+%      % Example using onesidedsegment mode
+%      pathXY = fcn_GetUserInputPath_getUserInputPath([], figNum, 'onesidedsegment')
 %
 % See the script: script_test_fcn_GetUserInputPath_getUserInputPath
 % for a full test suite.
@@ -123,7 +140,6 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   % * Updated to support click-to-drag of points
 %   % * Updated to support cling on legend to exit
 %   % * Forces close of the figure upon completion
-
 %
 % 2026_05_15 by Jaime Rodriguez
 % - In fcn_GetUserInputPath_getUserInputPath
@@ -185,13 +201,13 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %
 % 2026_05_27 by Jaime Rodriguez
 % - In fcn_GetUserInputPath_getUserInputPath
-%   % * Added 'directedpath' inputType to display user-selected paths with
-%   %   direction arrows.
-%   % * Added 'onesidedsegment' inputType to display two-point segments with
-%   %   a side indicator showing the positive/visible side.
-%   % * Added support for both new modes in normal XY axes and GeographicAxes.
-%   % * Added helper functions to draw/update arrow objects and keep only the
-%   %   two required points in onesidedsegment mode.
+%   % * Added 'directedpath' and 'onesidedsegment' inputTypes.
+%   % * Added arrow-based visualization for both normal XY axes and
+%   %   GeographicAxes.
+%   % * Added support for multiple one-sided segments separated by [NaN NaN]
+%   %   rows.
+%   % * Updated GeographicAxes point-dragging behavior so moved points remain
+%   %   at the user-selected map location.
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu

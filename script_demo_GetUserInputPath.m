@@ -158,6 +158,16 @@
 %   % * Added support for both new modes in normal XY axes and GeographicAxes.
 %   % * Added helper functions to draw/update arrow objects and keep only the
 %   %   two required points in onesidedsegment mode.
+%
+% 2026_06_08 by Jaime Rodriguez
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * Updated demo coverage after fixing GeographicAxes behavior for the
+%   %   new 'directedpath' and 'onesidedsegment' modes.
+%   % * Verified that user-selected points can be moved correctly on map-based
+%   %   axes without breaking the plotted path.
+%   % * Verified that 'onesidedsegment' supports multiple independent segments
+%   %   separated by right-click [NaN NaN] rows.
+
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
