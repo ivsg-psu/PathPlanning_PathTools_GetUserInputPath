@@ -543,6 +543,30 @@ if 1==0
     % % Make sure plot opened up
     % assert(isequal(get(gcf,'Number'),figNum));
 
+    %% TEST case: testing with normal plot in aabb mode
+    figNum = 20005;
+    titleString = sprintf('TEST case: normal plot in aabb mode');
+    fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+    figure(figNum); clf;
+
+    startingXY = [];
+    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'aabb');
+
+    % sgtitle(titleString, 'Interpreter','none');
+
+    % Check variable types
+    assert(isnumeric(pathXY));
+
+    % Check variable sizes
+    assert(size(pathXY,1)>=1);
+    assert(size(pathXY,2)==2);
+
+    % Check variable values
+    % User defined
+
+    % % Make sure plot opened up
+    % assert(isequal(get(gcf,'Number'),figNum));
+
     %% TEST case: testing with geoplot in aabb mode
     figNum = 20005;
     titleString = sprintf('TEST case: geoplot in aabb mode');
