@@ -57,18 +57,19 @@
 %   %   positive/visible side.
 %   % * Added a GeographicAxes demo for 'onesidedsegment' to verify that the
 %   %   side indicator can be drawn on map-based axes.
-
-
-% TO-DO:
 %
 % 2026_06_08 by Sean Brennan, sbrennan@psu.edu
 % - In script_test_fcn_GetUserInputPath_getUserInputPath
 %   % * In case 10012, for directedpath, if someone clicks a few arrows 
 %   %   % into place, and then  tries to drag one of the existing arrows 
-%   %   % someplace new, the code crashes.
+%   %   % someplace new, the code crashes.--SOLVED
 %   % * For the case 10014, the onesidedsegment, cannot create more than
 %   %   % one segment at a time. Need to modify code to allow user to be
-%   %   % able to create many segments
+%   %   % able to create many segments--SOLVED
+
+% TO-DO:
+%
+
 
 
 

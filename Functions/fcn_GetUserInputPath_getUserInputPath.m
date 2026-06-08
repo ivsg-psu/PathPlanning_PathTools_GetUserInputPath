@@ -493,10 +493,10 @@ if strcmp(inputType,'aabb')
 	end
 end
 
-% If in onesidedsegment mode, return only the two defining points
+% If in onesidedsegment mode, return only the first two valid points of each segment
 if strcmp(inputType,'onesidedsegment')
-	pathXY = fcn_INTERNAL_keepOnlyFirstTwoValidPoints(pathXY);
-	closedAreaXY = [];
+    pathXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
+    closedAreaXY = [];
 end
 
 function updateDrawing()
@@ -533,10 +533,10 @@ function updateDrawing()
 			updateLineObject(hPoints, pathXY);
 			updateDirectedPathObjects(pathXY);
 
-		case 'onesidedsegment'
-			oneSidedSegmentXY = fcn_INTERNAL_keepOnlyFirstTwoValidPoints(pathXY);
-			updateLineObject(hPoints, oneSidedSegmentXY);
-			updateOneSidedSegmentObjects(oneSidedSegmentXY);
+        case 'onesidedsegment'
+            oneSidedSegmentXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
+            updateLineObject(hPoints, oneSidedSegmentXY);
+            updateOneSidedSegmentObjects(oneSidedSegmentXY);
 
         otherwise
 			error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
@@ -761,156 +761,158 @@ end
 		uistack(hPoints,'top');
 	end
 end
-function updateOneSidedSegmentObjects(segmentXY)
-	% Draws a small perpendicular arrow showing the positive side of a segment.
-	% The positive side is the left side when moving from start point to end point.
+    function updateOneSidedSegmentObjects(segmentXY)
+    % Draws a perpendicular arrow showing the positive side of each segment.
+    % The positive side is the left side when moving from start point to end point.
 
-	deleteQuiverObjects();
+    deleteQuiverObjects();
 
-	validPoints = segmentXY(~any(isnan(segmentXY),2),:);
+    subPaths = fcn_INTERNAL_splitPathByNaNs(segmentXY);
 
-	if size(validPoints,1) < 2
-		return;
-	end
+    for ith_subpath = 1:length(subPaths)
 
-	pointStart = validPoints(1,:);
-	pointEnd   = validPoints(2,:);
+        thisSegmentXY = subPaths{ith_subpath};
 
-	dx = pointEnd(1) - pointStart(1);
-	dy = pointEnd(2) - pointStart(2);
+        if size(thisSegmentXY,1) < 2
+            continue;
+        end
 
-	segmentLength = hypot(dx,dy);
+        pointStart = thisSegmentXY(1,:);
+        pointEnd   = thisSegmentXY(2,:);
 
-	if segmentLength <= 0
-		return;
-	end
+        dx = pointEnd(1) - pointStart(1);
+        dy = pointEnd(2) - pointStart(2);
 
-	midPoint = 0.5*(pointStart + pointEnd);
+        segmentLength = hypot(dx,dy);
 
-	% Positive side: left side when moving from start to end
-	normalVector = [-dy dx] ./ segmentLength;
+        if segmentLength <= 0
+            continue;
+        end
 
-	arrowLength = 0.25 * segmentLength;
+        midPoint = 0.5*(pointStart + pointEnd);
 
-if flag_isGeoPlot
+        % Positive side: left side when moving from start to end
+        normalVector = [-dy dx] ./ segmentLength;
 
-	% GeographicAxes case.
-	% pathXY is assumed to be [Latitude Longitude].
-	%
-	% Work in local meter coordinates instead of raw lat/lon degrees.
-	% This makes the perpendicular arrow visible and geometrically consistent
-	% on the map.
+        arrowLength = 0.18 * segmentLength;
 
-	latStart = pointStart(1);
-	lonStart = pointStart(2);
+        if flag_isGeoPlot
 
-	latEnd = pointEnd(1);
-	lonEnd = pointEnd(2);
+            % GeographicAxes case.
+            % pathXY is assumed to be [Latitude Longitude].
+            % Work in local meter coordinates instead of raw lat/lon degrees.
 
-	latRef = 0.5*(latStart + latEnd);
+            latStart = pointStart(1);
+            lonStart = pointStart(2);
 
-	metersPerDegLat = 111320;
-	metersPerDegLon = 111320*cosd(latRef);
+            latEnd = pointEnd(1);
+            lonEnd = pointEnd(2);
 
-	xStart_m = lonStart * metersPerDegLon;
-	yStart_m = latStart * metersPerDegLat;
+            latRef = 0.5*(latStart + latEnd);
 
-	xEnd_m = lonEnd * metersPerDegLon;
-	yEnd_m = latEnd * metersPerDegLat;
+            metersPerDegLat = 111320;
+            metersPerDegLon = 111320*cosd(latRef);
 
-	dx_m = xEnd_m - xStart_m;
-	dy_m = yEnd_m - yStart_m;
+            xStart_m = lonStart * metersPerDegLon;
+            yStart_m = latStart * metersPerDegLat;
 
-	segmentLength_m = hypot(dx_m,dy_m);
+            xEnd_m = lonEnd * metersPerDegLon;
+            yEnd_m = latEnd * metersPerDegLat;
 
-	if segmentLength_m <= 0
-		return;
-	end
+            dx_m = xEnd_m - xStart_m;
+            dy_m = yEnd_m - yStart_m;
 
-	midX_m = 0.5*(xStart_m + xEnd_m);
-	midY_m = 0.5*(yStart_m + yEnd_m);
+            segmentLength_m = hypot(dx_m,dy_m);
 
-	% Positive side: left side when moving from start to end
-	normalX_m = -dy_m/segmentLength_m;
-	normalY_m =  dx_m/segmentLength_m;
+            if segmentLength_m <= 0
+                continue;
+            end
 
-	% Side arrow length in meters
-	arrowLength_m = 0.18 * segmentLength_m;
+            midX_m = 0.5*(xStart_m + xEnd_m);
+            midY_m = 0.5*(yStart_m + yEnd_m);
 
-	xArrowStart_m = midX_m;
-	yArrowStart_m = midY_m;
+            % Positive side: left side when moving from start to end
+            normalX_m = -dy_m/segmentLength_m;
+            normalY_m =  dx_m/segmentLength_m;
 
-	xArrowEnd_m = midX_m + arrowLength_m*normalX_m;
-	yArrowEnd_m = midY_m + arrowLength_m*normalY_m;
+            % Side arrow length in meters
+            arrowLength_m = 0.18 * segmentLength_m;
 
-	latStartArrow = yArrowStart_m / metersPerDegLat;
-	lonStartArrow = xArrowStart_m / metersPerDegLon;
+            xArrowStart_m = midX_m;
+            yArrowStart_m = midY_m;
 
-	latEndArrow = yArrowEnd_m / metersPerDegLat;
-	lonEndArrow = xArrowEnd_m / metersPerDegLon;
+            xArrowEnd_m = midX_m + arrowLength_m*normalX_m;
+            yArrowEnd_m = midY_m + arrowLength_m*normalY_m;
 
-	% Draw perpendicular side indicator shaft
-	hQuiverObjects(end+1) = geoplot(ax, ...
-		[latStartArrow latEndArrow], ...
-		[lonStartArrow lonEndArrow], ...
-		'r-', ...
-		'LineWidth',4, ...
-		'HandleVisibility','off'); %#ok<AGROW>
+            latStartArrow = yArrowStart_m / metersPerDegLat;
+            lonStartArrow = xArrowStart_m / metersPerDegLon;
 
-	% Arrow head in local meter coordinates
-	headLength_m = 0.20 * arrowLength_m;
-	headWidth_m  = 0.12 * arrowLength_m;
+            latEndArrow = yArrowEnd_m / metersPerDegLat;
+            lonEndArrow = xArrowEnd_m / metersPerDegLon;
 
-	headTip_m  = [xArrowEnd_m yArrowEnd_m];
-	headBase_m = headTip_m - headLength_m*[normalX_m normalY_m];
+            % Draw perpendicular side indicator shaft
+            hQuiverObjects(end+1) = geoplot(ax, ...
+                [latStartArrow latEndArrow], ...
+                [lonStartArrow lonEndArrow], ...
+                'r-', ...
+                'LineWidth',4, ...
+                'HandleVisibility','off'); %#ok<AGROW>
 
-	arrowPerp_m = [-normalY_m normalX_m];
+            % Arrow head in local meter coordinates
+            headLength_m = 0.20 * arrowLength_m;
+            headWidth_m  = 0.12 * arrowLength_m;
 
-	headLeft_m  = headBase_m + headWidth_m*arrowPerp_m;
-	headRight_m = headBase_m - headWidth_m*arrowPerp_m;
+            headTip_m  = [xArrowEnd_m yArrowEnd_m];
+            headBase_m = headTip_m - headLength_m*[normalX_m normalY_m];
 
-	latHeadLeft  = headLeft_m(2) / metersPerDegLat;
-	lonHeadLeft  = headLeft_m(1) / metersPerDegLon;
+            arrowPerp_m = [-normalY_m normalX_m];
 
-	latHeadRight = headRight_m(2) / metersPerDegLat;
-	lonHeadRight = headRight_m(1) / metersPerDegLon;
+            headLeft_m  = headBase_m + headWidth_m*arrowPerp_m;
+            headRight_m = headBase_m - headWidth_m*arrowPerp_m;
 
-	latHeadTip = headTip_m(2) / metersPerDegLat;
-	lonHeadTip = headTip_m(1) / metersPerDegLon;
+            latHeadLeft  = headLeft_m(2) / metersPerDegLat;
+            lonHeadLeft  = headLeft_m(1) / metersPerDegLon;
 
-	% Draw arrow head left side
-	hQuiverObjects(end+1) = geoplot(ax, ...
-		[latHeadLeft latHeadTip], ...
-		[lonHeadLeft lonHeadTip], ...
-		'r-', ...
-		'LineWidth',4, ...
-		'HandleVisibility','off'); %#ok<AGROW>
+            latHeadRight = headRight_m(2) / metersPerDegLat;
+            lonHeadRight = headRight_m(1) / metersPerDegLon;
 
-	% Draw arrow head right side
-	hQuiverObjects(end+1) = geoplot(ax, ...
-		[latHeadRight latHeadTip], ...
-		[lonHeadRight lonHeadTip], ...
-		'r-', ...
-		'LineWidth',4, ...
-		'HandleVisibility','off'); %#ok<AGROW>
+            latHeadTip = headTip_m(2) / metersPerDegLat;
+            lonHeadTip = headTip_m(1) / metersPerDegLon;
 
-else
+            % Draw arrow head left side
+            hQuiverObjects(end+1) = geoplot(ax, ...
+                [latHeadLeft latHeadTip], ...
+                [lonHeadLeft lonHeadTip], ...
+                'r-', ...
+                'LineWidth',4, ...
+                'HandleVisibility','off'); %#ok<AGROW>
 
-	% Normal XY axes case
-	hQuiverObjects(end+1) = quiver(ax, ...
-		midPoint(1), midPoint(2), ...
-		arrowLength*normalVector(1), arrowLength*normalVector(2), ...
-		0, ...
-		'Color','r', ...
-		'LineWidth',3, ...
-		'MaxHeadSize',1.5, ...
-		'HandleVisibility','off'); %#ok<AGROW>
+            % Draw arrow head right side
+            hQuiverObjects(end+1) = geoplot(ax, ...
+                [latHeadRight latHeadTip], ...
+                [lonHeadRight lonHeadTip], ...
+                'r-', ...
+                'LineWidth',4, ...
+                'HandleVisibility','off'); %#ok<AGROW>
+
+        else
+
+            % Normal XY axes case
+            hQuiverObjects(end+1) = quiver(ax, ...
+                midPoint(1), midPoint(2), ...
+                arrowLength*normalVector(1), arrowLength*normalVector(2), ...
+                0, ...
+                'Color','r', ...
+                'LineWidth',3, ...
+                'MaxHeadSize',1.5, ...
+                'HandleVisibility','off'); %#ok<AGROW>
+        end
+    end
+
+    if isgraphics(hPoints)
+        uistack(hPoints,'top');
+    end
 end
-	if isgraphics(hPoints)
-		uistack(hPoints,'top');
-	end
-end
-
 	function legendItemClicked(~, event)
 		s = getappdata(figNum,'HoldPanState');
 		s.legendClicked = true;
@@ -976,19 +978,18 @@ end
 		    s.startPoint = currentPointXY;
 
 		% Get current axis limits
-		    if flag_isGeoPlot
-			    [latlimOut,lonlimOut] = geolimits;
-
-			% GeographicAxes:
-			% X direction = longitude
-			% Y direction = latitude
-			    s.startXLim = lonlimOut;
-			    s.startYLim = latlimOut;
-		    else
-			    s.startXLim = ax.XLim;
-			    s.startYLim = ax.YLim;
-		    end
-
+	      if flag_isGeoPlot
+            [latlimOut,lonlimOut] = geolimits;
+        
+            % In GeographicAxes, pathXY is stored as [Latitude Longitude].
+            % Therefore, startXLim corresponds to the first column latitude,
+            % and startYLim corresponds to the second column longitude.
+            s.startXLim = latlimOut;
+            s.startYLim = lonlimOut;
+        else
+            s.startXLim = ax.XLim;
+            s.startYLim = ax.YLim;
+        end
 		% Check whether the click is close to an existing point
 		    closestIndex = fcn_INTERNAL_findNearestPointIndex( ...
 			    s.startXLim, s.startYLim, pathXY, currentPointXY, 0.01);
@@ -1054,17 +1055,20 @@ end
 		    dy = currentPointXY(2) - s.startPoint(2);
 
         if flag_isGeoPlot
-	        % currentPointXY is stored as [Latitude Longitude]
-	        dLat = currentPointXY(1) - s.startPoint(1);
-	        dLon = currentPointXY(2) - s.startPoint(2);
+            % currentPointXY is stored as [Latitude Longitude]
+            dLat = currentPointXY(1) - s.startPoint(1);
+            dLon = currentPointXY(2) - s.startPoint(2);
         
-	        newLatitudeLimits  = s.startYLim - dLat;
-	        newLongitudeLimits = s.startXLim - dLon;
+            % For GeographicAxes:
+            % s.startXLim stores latitude limits
+            % s.startYLim stores longitude limits
+            newLatitudeLimits  = s.startXLim - dLat;
+            newLongitudeLimits = s.startYLim - dLon;
         
-	        geolimits(newLatitudeLimits,newLongitudeLimits);
+            geolimits(newLatitudeLimits,newLongitudeLimits);
         else
-	        ax.XLim = s.startXLim - dx;
-	        ax.YLim = s.startYLim - dy;
+            ax.XLim = s.startXLim - dx;
+            ax.YLim = s.startYLim - dy;
         end
 
 	    else
@@ -1114,28 +1118,38 @@ end
 	x = currentPointXY(1);
 	y = currentPointXY(2);
 
-	if strcmp(inputType,'aabb') || strcmp(inputType,'onesidedsegment')
-		validRows = ~any(isnan(pathXY),2);
-		NvalidPoints = sum(validRows);
+if strcmp(inputType,'aabb')
+    validRows = ~any(isnan(pathXY),2);
+    NvalidPoints = sum(validRows);
 
-		if all(isnan(pathXY),'all')
-			pathXY(1,:) = [x, y];
+    if all(isnan(pathXY),'all')
+        pathXY(1,:) = [x, y];
 
-		elseif NvalidPoints < 2
-			pathXY(end+1,:) = [x, y];
+    elseif NvalidPoints < 2
+        pathXY(end+1,:) = [x, y];
 
-		else
-			validIndices = find(validRows);
-			pathXY(validIndices(2),:) = [x, y];
-		end
+    else
+        validIndices = find(validRows);
+        pathXY(validIndices(2),:) = [x, y];
+    end
 
-	else
-		if all(isnan(pathXY),'all')
-			pathXY(1,:) = [x, y];
-		else
-			pathXY(end+1,:) = [x y];
-		end
-	end
+elseif strcmp(inputType,'onesidedsegment')
+
+    newPointXY = [x y];
+
+    if isempty(pathXY) || all(isnan(pathXY),'all')
+        pathXY = newPointXY;
+    else
+        pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,newPointXY);
+    end
+
+else
+    if all(isnan(pathXY),'all')
+        pathXY(1,:) = [x, y];
+    else
+        pathXY(end+1,:) = [x y];
+    end
+end
 
 	setappdata(figNum,'HoldPanState',s);
 	updateDrawing();
@@ -1170,22 +1184,30 @@ end
 	% Get current cursor point
 	currentPointXY = getCurrentPointXY();
 
-	if strcmp(inputType,'aabb') || strcmp(inputType,'onesidedsegment')
-		% aabb and onesidedsegment modes only keep two defining points
-		validRows = ~any(isnan(pathXY),2);
-		NvalidPoints = sum(validRows);
+if strcmp(inputType,'aabb')
+    % aabb mode only keeps two corner points
+    validRows = ~any(isnan(pathXY),2);
+    NvalidPoints = sum(validRows);
 
-		if isempty(pathXY) || all(isnan(pathXY),'all')
-			pathXY = currentPointXY;
+    if isempty(pathXY) || all(isnan(pathXY),'all')
+        pathXY = currentPointXY;
 
-		elseif NvalidPoints < 2
-			pathXY(end+1,:) = currentPointXY;
+    elseif NvalidPoints < 2
+        pathXY(end+1,:) = currentPointXY;
 
-		else
-			% Replace second corner if two already exist
-			validIndices = find(validRows);
-			pathXY(validIndices(2),:) = currentPointXY;
-		end
+    else
+        % Replace second corner if two already exist
+        validIndices = find(validRows);
+        pathXY(validIndices(2),:) = currentPointXY;
+    end
+
+elseif strcmp(inputType,'onesidedsegment')
+    % onesidedsegment keeps two points per segment/subpath
+    if isempty(pathXY) || all(isnan(pathXY),'all')
+        pathXY = currentPointXY;
+    else
+        pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,currentPointXY);
+    end
 
 	elseif strcmp(inputType,'points')
 		% In points mode there are no line segments, so append the point.
@@ -1309,16 +1331,14 @@ end
 				% Get current axis limits
 				s = getappdata(figNum,'HoldPanState');
                 if flag_isGeoPlot
-	                [latlimOut,lonlimOut] = geolimits;
+                    [latlimOut,lonlimOut] = geolimits;
                 
-	                % GeographicAxes:
-	                % X direction = longitude
-	                % Y direction = latitude
-	                s.startXLim = lonlimOut;
-	                s.startYLim = latlimOut;
+                    % In GeographicAxes, pathXY is stored as [Latitude Longitude].
+                    s.startXLim = latlimOut;
+                    s.startYLim = lonlimOut;
                 else
-	                s.startXLim = ax.XLim;
-	                s.startYLim = ax.YLim;
+                    s.startXLim = ax.XLim;
+                    s.startYLim = ax.YLim;
                 end
 
 				%%%%%%%%%%%%%
@@ -1496,28 +1516,97 @@ aabbXY = [
 	];
 
 end
-
-function segmentXY = fcn_INTERNAL_keepOnlyFirstTwoValidPoints(pathXY)
-% Keeps only the first two valid points from pathXY.
+function pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,newPointXY)
+% Adds a point to the current one-sided segment subpath.
 %
-% INPUTS:
-%   pathXY - Nx2 array, possibly containing NaN separator rows.
+% Each one-sided segment subpath can contain up to two valid points:
+% start point and end point. A [NaN NaN] row separates independent segments.
 %
-% OUTPUTS:
-%   segmentXY - up to 2x2 array containing the first two valid points.
+% If the current subpath has fewer than two points, the new point is appended.
+% If the current subpath already has two points, the second point is replaced.
 
-validPoints = pathXY(~any(isnan(pathXY),2),:);
-
-if isempty(validPoints)
-	segmentXY = [nan nan];
-	return;
+if isempty(pathXY) || all(isnan(pathXY),'all')
+    pathXY = newPointXY;
+    return;
 end
 
-if size(validPoints,1) == 1
-	segmentXY = validPoints;
-	return;
+nanRows = any(isnan(pathXY),2);
+
+% Find the start index of the current subpath after the last NaN row
+lastNaNIndex = find(nanRows,1,'last');
+
+if isempty(lastNaNIndex)
+    currentSubPathStartIndex = 1;
+else
+    currentSubPathStartIndex = lastNaNIndex + 1;
 end
 
-segmentXY = validPoints(1:2,:);
+% If the path ends with NaN, start a new segment
+if currentSubPathStartIndex > size(pathXY,1)
+    pathXY(end+1,:) = newPointXY;
+    return;
+end
+
+currentIndices = currentSubPathStartIndex:size(pathXY,1);
+currentValidRows = currentIndices(~any(isnan(pathXY(currentIndices,:)),2));
+
+if isempty(currentValidRows)
+    pathXY(end+1,:) = newPointXY;
+
+elseif length(currentValidRows) < 2
+    pathXY(end+1,:) = newPointXY;
+
+else
+    % Replace the second point of the current segment
+    pathXY(currentValidRows(2),:) = newPointXY;
+end
+
+end
+
+
+function cleanPathXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY)
+% Keeps only the first two valid points from each subpath separated by NaNs.
+%
+% This is used by onesidedsegment mode, where each independent segment is
+% defined by two points: start point and end point.
+
+cleanPathXY = [];
+
+if isempty(pathXY)
+    cleanPathXY = [nan nan];
+    return;
+end
+
+subPaths = fcn_INTERNAL_splitPathByNaNs(pathXY);
+
+if isempty(subPaths)
+    cleanPathXY = [nan nan];
+    return;
+end
+
+for ith_subpath = 1:length(subPaths)
+
+    thisSubPath = subPaths{ith_subpath};
+
+    if isempty(thisSubPath)
+        continue;
+    end
+
+    if size(thisSubPath,1) == 1
+        thisCleanSubPath = thisSubPath(1,:);
+    else
+        thisCleanSubPath = thisSubPath(1:2,:);
+    end
+
+    if isempty(cleanPathXY)
+        cleanPathXY = thisCleanSubPath;
+    else
+        cleanPathXY = [cleanPathXY; nan nan; thisCleanSubPath]; %#ok<AGROW>
+    end
+end
+
+if isempty(cleanPathXY)
+    cleanPathXY = [nan nan];
+end
 
 end
