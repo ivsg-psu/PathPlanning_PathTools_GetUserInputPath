@@ -43,8 +43,9 @@
 %   % * The aabb mode seems to only allow one AABB to be entered. This is
 %   fine and makes sense, see for example test 20005, but seems like we
 %   should document this in the header comments--SOLVED
-
+%
 % 2026_05_27 by Jaime Rodriguez
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
 %   % * Added interactive demo cases for the new 'directedpath' inputType.
 %   % * Added a normal XY axes demo for 'directedpath' to verify that
 %   %   consecutive user-selected points are connected using direction arrows.
@@ -60,8 +61,14 @@
 
 % TO-DO:
 %
-% 2026_05_20 by Jaime Rodriguez
+% 2026_06_08 by Sean Brennan, sbrennan@psu.edu
 % - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * In case 10012, for directedpath, if someone clicks a few arrows 
+%   %   % into place, and then  tries to drag one of the existing arrows 
+%   %   % someplace new, the code crashes.
+%   % * For the case 10014, the onesidedsegment, cannot create more than
+%   %   % one segment at a time. Need to modify code to allow user to be
+%   %   % able to create many segments
 
 
 

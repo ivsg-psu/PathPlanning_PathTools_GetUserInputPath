@@ -182,7 +182,7 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   % * The aabb mode seems to only allow one AABB to be entered. This is
 %   fine and makes sense, see for example test 20005, but seems like we
 %   should document this in the header comments--SOLVED
-
+%
 % 2026_05_27 by Jaime Rodriguez
 % - In fcn_GetUserInputPath_getUserInputPath
 %   % * Added 'directedpath' inputType to display user-selected paths with

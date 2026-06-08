@@ -134,6 +134,30 @@
 %   should document this in the header comments--SOLVED
 %
 % (new release)
+%
+% 2026_05_27 by Jaime Rodriguez
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * Added interactive demo cases for the new 'directedpath' inputType.
+%   % * Added a normal XY axes demo for 'directedpath' to verify that
+%   %   consecutive user-selected points are connected using direction arrows.
+%   % * Added a GeographicAxes demo for 'directedpath' to verify that directed
+%   %   paths can be drawn on map-based axes.
+%   % * Added interactive demo cases for the new 'onesidedsegment' inputType.
+%   % * Added a normal XY axes demo for 'onesidedsegment' to verify that a
+%   %   two-point segment is drawn with a perpendicular arrow indicating the
+%   %   positive/visible side.
+%   % * Added a GeographicAxes demo for 'onesidedsegment' to verify that the
+%   %   side indicator can be drawn on map-based axes.
+%
+% 2026_05_27 by Jaime Rodriguez
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added 'directedpath' inputType to display user-selected paths with
+%   %   direction arrows.
+%   % * Added 'onesidedsegment' inputType to display two-point segments with
+%   %   a side indicator showing the positive/visible side.
+%   % * Added support for both new modes in normal XY axes and GeographicAxes.
+%   % * Added helper functions to draw/update arrow objects and keep only the
+%   %   two required points in onesidedsegment mode.
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
