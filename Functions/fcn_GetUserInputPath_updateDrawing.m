@@ -204,7 +204,7 @@ end
 
 
 % Create a plot to start?
-if isempty(hPoints) || ~ishandle(hPoints)
+if ~iscell(hPoints) && (isempty(hPoints) || ~ishandle(hPoints))
     % Create the user input drawing object
     switch inputType
         case 'path'
@@ -246,8 +246,12 @@ if isempty(hPoints) || ~ishandle(hPoints)
                     'DisplayName','User selected patch');
             end
 
-            % Handles for filled patch objects in patch mode
-            hPatchObjects = gobjects(0);
+            % Convert hPoints into cell array, and create an empty 
+            % handle for filled patch objects in patch mode
+            temp = hPoints;
+            hPoints = cell(2,1);
+            hPoints{1} = temp;
+            hPoints{2} = gobjects(0);
 
         case 'aabb'
             if flag_isGeoPlot
@@ -274,7 +278,14 @@ if isempty(hPoints) || ~ishandle(hPoints)
                     'MarkerFaceColor','r', ...
                     'DisplayName','User selected directed path');
             end
-            hQuiverObjects = gobjects(0);
+
+            % Convert hPoints into cell array, and create an empty
+            % handle for quiver objects in directedpath mode
+            temp = hPoints;
+            hPoints = cell(2,1);
+            hPoints{1} = temp;
+            hPoints{2} = gobjects(0);
+
         case 'onesidedsegment'
             if flag_isGeoPlot
                 hPoints = geoplot(ax, pathXY(:,1), pathXY(:,2), ...
@@ -287,13 +298,24 @@ if isempty(hPoints) || ~ishandle(hPoints)
                     'MarkerFaceColor','r', ...
                     'DisplayName','User selected one-sided segment');
             end
-            hQuiverObjects = gobjects(0);
+
+            % Convert hPoints into cell array, and create an empty
+            % handle for quiver objects in onesidedsegment mode
+            temp = hPoints;
+            hPoints = cell(2,1);
+            hPoints{1} = temp;
+            hPoints{2} = gobjects(0);
+
         otherwise
             error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
     end
 
-    if isempty(hPoints) || ~isgraphics(hPoints)
-        error('hPoints was not created. Check inputType and drawing object creation.');
+    if isempty(hPoints) 
+        error('hPoints was not created - is empty. Check inputType and drawing object creation.');
+    elseif ~iscell(hPoints) && ~isgraphics(hPoints)
+        error('hPoints is not a graphics handle. Check inputType and drawing object creation.');
+    elseif iscell(hPoints) && ~isgraphics(hPoints{1})
+        error('hPoints is a cell array but first value is not a graphics handle. Check inputType and drawing object creation.');
     end
 end
 
@@ -313,7 +335,7 @@ switch inputType
         hPoints = fcn_INTERNAL_updateLineObject(hPoints, patchXY);
 
         % Draw the filled patch separately underneath the editable line
-        fcn_INTERNAL_updatePatchObjects(hPoints, hPatchObjects, patchXY, flag_isGeoPlot);
+        hPoints = fcn_INTERNAL_updatePatchObjects(hPoints, patchXY, flag_isGeoPlot, ax);
 
     case 'aabb'
         aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY);
@@ -321,12 +343,12 @@ switch inputType
 
     case 'directedpath'
         hPoints = fcn_INTERNAL_updateLineObject(hPoints, pathXY);
-        fcn_INTERNAL_updateDirectedPathObjects(hPoints, hQuiverObjects, pathXY, flag_isGeoPlot, ax)
+        hPoints = fcn_INTERNAL_updateDirectedPathObjects(hPoints, pathXY, flag_isGeoPlot, ax);
 
     case 'onesidedsegment'
         oneSidedSegmentXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
         hPoints = fcn_INTERNAL_updateLineObject(hPoints, oneSidedSegmentXY);
-        fcn_INTERNAL_updateOneSidedSegmentObjects(hPoints, hQuiverObjects, oneSidedSegmentXY, flag_isGeoPlot, ax)
+        hPoints = fcn_INTERNAL_updateOneSidedSegmentObjects(hPoints, oneSidedSegmentXY, flag_isGeoPlot, ax);
 
     otherwise
         error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
@@ -372,29 +394,47 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%§
 
 %% fcn_INTERNAL_updateLineObject
-function hLine = fcn_INTERNAL_updateLineObject(hLine, displayXY)
+function new_hLine = fcn_INTERNAL_updateLineObject(hLine, displayXY)
 % Updates either a normal plot object or a geoplot object.
 
-if ~isempty(hLine)
-    if isprop(hLine,'LatitudeData') && isprop(hLine,'LongitudeData')
-        set(hLine, ...
+if iscell(hLine)
+    new_hLine = hLine{1};
+else
+    new_hLine = hLine;    
+end
+
+if ~isempty(new_hLine)
+    if isprop(new_hLine,'LatitudeData') && isprop(new_hLine,'LongitudeData')
+        set(new_hLine, ...
             'LatitudeData', displayXY(:,1), ...
             'LongitudeData', displayXY(:,2));
     else
-        set(hLine, ...
+        set(new_hLine, ...
             'XData', displayXY(:,1), ...
             'YData', displayXY(:,2));
     end
 else
     % Create an empty handle
-    hLine = gobjects(0);
+    new_hLine = gobjects(0);
 end
+
+% If input is a cell, need to move changes into cell array that was passed
+% into the function
+if iscell(hLine)
+    temp = new_hLine;
+    new_hLine = hLine;
+    new_hLine{1} = temp;
+end
+
 end % Ends fcn_INTERNAL_updateLineObject
 
 %% fcn_INTERNAL_updatePatchObjects
-function fcn_INTERNAL_updatePatchObjects(hPoints, hPatchObjects, patchXY, flag_isGeoPlot)
+function new_hPoints = fcn_INTERNAL_updatePatchObjects(hPoints, patchXY, flag_isGeoPlot, ax)
 % Deletes and redraws separate filled patch objects.
 % Each subpath separated by [NaN NaN] becomes its own patch.
+
+new_hPoint = hPoints{1};
+hPatchObjects = hPoints{2};
 
 % Delete old patch objects
 if ~isempty(hPatchObjects)
@@ -467,20 +507,24 @@ for ith_subpath = 1:NsubPaths
     end
 end
 
+new_hPoints{1} = new_hPoint;
+new_hPoints{2} = hPatchObjects;
+
 % Keep clicked points/line above filled patches
-if isgraphics(hPoints)
-    uistack(hPoints,'top');
+if isgraphics(new_hPoint)
+    uistack(new_hPoint,'top');
 end
 end % Ends fcn_INTERNAL_updatePatchObjects
 
 %% fcn_INTERNAL_updateDirectedPathObjects
-function fcn_INTERNAL_updateDirectedPathObjects(hPoints, hQuiverObjects, directedPathXY, flag_isGeoPlot, ax)
+function new_hPoints = fcn_INTERNAL_updateDirectedPathObjects(hPoints, directedPathXY, flag_isGeoPlot, ax)
 % Draws arrows between consecutive valid points in directed path mode.
 %
 % In normal XY axes, arrows are drawn using quiver.
 % In GeographicAxes, arrows are drawn manually using geoplot because
 % quiver is not compatible with GeographicAxes in the same way.
-
+new_hPoint = hPoints{1};
+hQuiverObjects = hPoints{2};
 hQuiverObjects = fcn_INTERNAL_deleteQuiverObjects(hQuiverObjects);
 
 subPaths = fcn_INTERNAL_splitPathByNaNs(directedPathXY);
@@ -537,20 +581,20 @@ for ith_subpath = 1:NsubPaths
                 lonRight = lonBase - arrowHeadWidth*perpLon;
 
                 % Draw main arrow shaft
-                hQuiverObjects(end+1) = geoplot(ax, ...
+                hQuiverObjects(ith_subpath) = geoplot(ax, ...
                     [latStart latEnd], ...
                     [lonStart lonEnd], ...
                     'r-', ...
                     'LineWidth',1.5, ...
-                    'HandleVisibility','off'); %#ok<AGROW>
+                    'HandleVisibility','off'); 
 
                 % Draw arrow head
-                hQuiverObjects(end+1) = geoplot(ax, ...
+                hQuiverObjects(ith_subpath) = geoplot(ax, ...
                     [latLeft latEnd latRight], ...
                     [lonLeft lonEnd lonRight], ...
                     'r-', ...
                     'LineWidth',1.5, ...
-                    'HandleVisibility','off'); %#ok<AGROW>
+                    'HandleVisibility','off'); 
             end
 
         else
@@ -562,19 +606,22 @@ for ith_subpath = 1:NsubPaths
             dx = thisPathXY(2:end,1) - thisPathXY(1:end-1,1);
             dy = thisPathXY(2:end,2) - thisPathXY(1:end-1,2);
 
-            hQuiverObjects(end+1) = quiver(ax, ...
+            hQuiverObjects(ith_subpath) = quiver(ax, ...
                 xStart, yStart, dx, dy, ...
                 0, ...
                 'Color','r', ...
                 'LineWidth',1.5, ...
                 'MaxHeadSize',0.5, ...
-                'HandleVisibility','off'); %#ok<AGROW>
+                'HandleVisibility','off'); 
         end
     end
 end
 
-if isgraphics(hPoints)
-    uistack(hPoints,'top');
+new_hPoints{1} = new_hPoint;
+new_hPoints{2} = hQuiverObjects;
+
+if isgraphics(new_hPoint)
+    uistack(new_hPoint,'top');
 end
 end % Ends fcn_INTERNAL_updateDirectedPathObjects
 
@@ -595,10 +642,12 @@ end  % Ends fcn_INTERNAL_deleteQuiverObjects
 
 
 %% fcn_INTERNAL_updateOneSidedSegmentObjects
-function fcn_INTERNAL_updateOneSidedSegmentObjects(hPoints, hQuiverObjects, segmentXY, flag_isGeoPlot, ax)
+function new_hPoints = fcn_INTERNAL_updateOneSidedSegmentObjects(hPoints, segmentXY, flag_isGeoPlot, ax)
 % Draws a perpendicular arrow showing the positive side of each segment.
 % The positive side is the left side when moving from start point to end point.
 
+new_hPoint = hPoints{1};
+hQuiverObjects = hPoints{2};
 hQuiverObjects = fcn_INTERNAL_deleteQuiverObjects(hQuiverObjects);
 
 subPaths = fcn_INTERNAL_splitPathByNaNs(segmentXY);
@@ -714,37 +763,40 @@ for ith_subpath = 1:NsubPaths
         lonHeadTip = headTip_m(1) / metersPerDegLon;
 
         % Draw arrow head left side
-        hQuiverObjects(end+1) = geoplot(ax, ...
+        hQuiverObjects(ith_subpath) = geoplot(ax, ...
             [latHeadLeft latHeadTip], ...
             [lonHeadLeft lonHeadTip], ...
             'r-', ...
             'LineWidth',4, ...
-            'HandleVisibility','off'); %#ok<AGROW>
+            'HandleVisibility','off'); 
 
         % Draw arrow head right side
-        hQuiverObjects(end+1) = geoplot(ax, ...
+        hQuiverObjects(ith_subpath) = geoplot(ax, ...
             [latHeadRight latHeadTip], ...
             [lonHeadRight lonHeadTip], ...
             'r-', ...
             'LineWidth',4, ...
-            'HandleVisibility','off'); %#ok<AGROW>
+            'HandleVisibility','off'); 
 
     else
 
         % Normal XY axes case
-        hQuiverObjects(end+1) = quiver(ax, ...
+        hQuiverObjects(ith_subpath) = quiver(ax, ...
             midPoint(1), midPoint(2), ...
             arrowLength*normalVector(1), arrowLength*normalVector(2), ...
             0, ...
             'Color','r', ...
             'LineWidth',3, ...
             'MaxHeadSize',1.5, ...
-            'HandleVisibility','off'); %#ok<AGROW>
+            'HandleVisibility','off'); 
     end
 end
 
-if isgraphics(hPoints)
-    uistack(hPoints,'top');
+new_hPoints{1} = new_hPoint;
+new_hPoints{2} = hQuiverObjects;
+
+if isgraphics(new_hPoint)
+    uistack(new_hPoint,'top');
 end
 end % Ends fcn_INTERNAL_updateOneSidedSegmentObjects
 

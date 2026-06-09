@@ -167,6 +167,9 @@
 %   %   axes without breaking the plotted path.
 %   % * Verified that 'onesidedsegment' supports multiple independent segments
 %   %   separated by right-click [NaN NaN] rows.
+%
+% 2026_06_09 by Sean Brennan, sbrennan@psu.edu
+
 
 
 % TO-DO:
