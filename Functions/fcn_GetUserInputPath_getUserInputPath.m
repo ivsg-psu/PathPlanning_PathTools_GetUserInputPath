@@ -208,6 +208,10 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   %   rows.
 %   % * Updated GeographicAxes point-dragging behavior so moved points remain
 %   %   at the user-selected map location.
+%
+% 2026_06_09 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added calls to fcn_GetUserInputPath_updateDrawing
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
@@ -452,10 +456,10 @@ if isempty(hPoints) || ~isgraphics(hPoints)
 end
 
 % Handles for filled patch objects in patch mode
-hPatchObjects = gobjects(0);
+% hPatchObjects = gobjects(0);
 
 % Handles for quiver objects in directed path and one-sided segment modes
-hQuiverObjects = gobjects(0);
+% hQuiverObjects = gobjects(0);
 
 % Freeze the axis limits so MATLAB does not auto-zoom when points are added
 if ~flag_isGeoPlot
@@ -516,420 +520,420 @@ if strcmp(inputType,'onesidedsegment')
     closedAreaXY = [];
 end
 
-    function updateDrawing()
-    	% Updates the drawing based on the selected inputType
+% function updateDrawing()
+% 	% Updates the drawing based on the selected inputType
+%
+% 	switch inputType
+% 		case 'path'
+% 			updateLineObject(hPoints, pathXY);
+%
+% 		case 'points'
+% 			updateLineObject(hPoints, pathXY);
+%
+%         case 'patch'
+% 	        % Keep NaN rows so right-click can separate different patches
+% 	        patchXY = pathXY;
+%
+% 	        % Show the clicked points/edges as an editable red line
+% 	        updateLineObject(hPoints, patchXY);
+%
+% 	        % Draw the filled patch separately underneath the editable line
+% 	        updatePatchObjects(patchXY);
+%
+% 		case 'aabb'
+% 			aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY);
+% 			updateLineObject(hPoints, aabbXY);
+%
+%             if size(aabbXY,1) >= 5
+% 				closedAreaXY = aabbXY(1:end-1,:);
+% 			else
+% 				closedAreaXY = [];
+%             end
+%
+%         case 'directedpath'
+% 			updateLineObject(hPoints, pathXY);
+% 			updateDirectedPathObjects(pathXY);
+%
+%         case 'onesidedsegment'
+%             oneSidedSegmentXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
+%             updateLineObject(hPoints, oneSidedSegmentXY);
+%             updateOneSidedSegmentObjects(oneSidedSegmentXY);
+%
+%         otherwise
+% 			error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
+% 	end
+%
+% 	drawnow;
+% end
 
-    	switch inputType
-    		case 'path'
-    			updateLineObject(hPoints, pathXY);
-
-    		case 'points'
-    			updateLineObject(hPoints, pathXY);
-
-            case 'patch'
-    	        % Keep NaN rows so right-click can separate different patches
-    	        patchXY = pathXY;
-
-    	        % Show the clicked points/edges as an editable red line
-    	        updateLineObject(hPoints, patchXY);
-
-    	        % Draw the filled patch separately underneath the editable line
-    	        updatePatchObjects(patchXY);
-
-    		case 'aabb'
-    			aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY);
-    			updateLineObject(hPoints, aabbXY);
-
-                if size(aabbXY,1) >= 5
-    				closedAreaXY = aabbXY(1:end-1,:);
-    			else
-    				closedAreaXY = [];
-                end
-
-            case 'directedpath'
-    			updateLineObject(hPoints, pathXY);
-    			updateDirectedPathObjects(pathXY);
-
-            case 'onesidedsegment'
-                oneSidedSegmentXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
-                updateLineObject(hPoints, oneSidedSegmentXY);
-                updateOneSidedSegmentObjects(oneSidedSegmentXY);
-
-            otherwise
-    			error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
-    	end
-
-    	drawnow;
-    end
-
-    function updateLineObject(hLine, displayXY)
-        % Updates either a normal plot object or a geoplot object.
-
-        if isprop(hLine,'LatitudeData') && isprop(hLine,'LongitudeData')
-            set(hLine, ...
-                'LatitudeData', displayXY(:,1), ...
-                'LongitudeData', displayXY(:,2));
-        else
-            set(hLine, ...
-                'XData', displayXY(:,1), ...
-                'YData', displayXY(:,2));
-        end
-    end
+% function updateLineObject(hLine, displayXY)
+%     % Updates either a normal plot object or a geoplot object.
+%
+%     if isprop(hLine,'LatitudeData') && isprop(hLine,'LongitudeData')
+%         set(hLine, ...
+%             'LatitudeData', displayXY(:,1), ...
+%             'LongitudeData', displayXY(:,2));
+%     else
+%         set(hLine, ...
+%             'XData', displayXY(:,1), ...
+%             'YData', displayXY(:,2));
+%     end
+% end
 
     function currentPointXY = getCurrentPointXY()
-    	% Gets current cursor point in the current axes coordinate order.
-    	currentPoint = get(ax,'CurrentPoint');
-    	currentPointXY = currentPoint(1,1:2);
+        % Gets current cursor point in the current axes coordinate order.
+        currentPoint = get(ax,'CurrentPoint');
+        currentPointXY = currentPoint(1,1:2);
     end
 
-    function updatePatchObjects(patchXY)
-    	% Deletes and redraws separate filled patch objects.
-    	% Each subpath separated by [NaN NaN] becomes its own patch.
-
-    	% Delete old patch objects
-    	if ~isempty(hPatchObjects)
-    		for ith_patch = 1:length(hPatchObjects)
-    			if isgraphics(hPatchObjects(ith_patch))
-    				delete(hPatchObjects(ith_patch));
-    			end
-    		end
-    	end
-
-    	hPatchObjects = gobjects(0);
-
-    	% Split into separate patch candidates
-    	subPaths = fcn_INTERNAL_splitPathByNaNs(patchXY);
-
-    	for ith_subpath = 1:length(subPaths)
-
-    		thisPatchXY = subPaths{ith_subpath};
-
-    		% A patch needs at least 3 valid points
-            if size(thisPatchXY,1) >= 3
-
-                if flag_isGeoPlot
-        	        % GeographicAxes case.
-        	        % pathXY/geoplot data are assumed to be [Latitude Longitude].
-        	        latitudes  = thisPatchXY(:,1);
-        	        longitudes = thisPatchXY(:,2);
-
-                    % Ensure the polygon is explicitly closed
-                    if ~isequal([latitudes(1) longitudes(1)], [latitudes(end) longitudes(end)])
-        	            latitudes  = [latitudes; latitudes(1)];
-        	            longitudes = [longitudes; longitudes(1)];
-                    end
-
-        	        % geopolyshape expects valid polygon topology. For outer boundaries,
-        	        % clockwise vertex order is generally required.
-        	        % Use longitude as X and latitude as Y for the signed area check.
-        	        signedArea = 0.5 * sum( ...
-        		        longitudes(1:end-1).*latitudes(2:end) - ...
-        		        longitudes(2:end).*latitudes(1:end-1));
-
-        	        % Positive signed area means counter-clockwise, so reverse it
-        	        if signedArea > 0
-        		        latitudes  = flipud(latitudes);
-        		        longitudes = flipud(longitudes);
-        	        end
-
-        	        geoPatchShape = geopolyshape(latitudes, longitudes);
-
-        	        hPatchObjects(end+1) = geoplot(ax, geoPatchShape, ...
-        		        'FaceColor','red', ...
-        		        'FaceAlpha',0.2, ...
-        		        'EdgeColor','red', ...
-        		        'LineWidth',1.5, ...
-        		        'HandleVisibility','off');
-
-    			else
-    				% Normal XY axes case
-    				hPatchObjects(end+1) = patch('XData',thisPatchXY(:,1), ...
-    					'YData',thisPatchXY(:,2), ...
-    					'FaceColor','red', ...
-    					'FaceAlpha',0.2, ...
-    					'EdgeColor','red', ...
-    					'LineWidth',1.5, ...
-    					'HitTest','off', ...
-    					'PickableParts','none', ...
-    					'HandleVisibility','off'); %#ok<AGROW>
-                end
-            end
-    	end
-
-    	% Keep clicked points/line above filled patches
-        if isgraphics(hPoints)
-    		uistack(hPoints,'top');
-        end
-    end
-
-    function deleteQuiverObjects()
-    	% Deletes old quiver objects used by directed path and one-sided segment modes.
-
-    	if ~isempty(hQuiverObjects)
-    		for ith_quiver = 1:length(hQuiverObjects)
-    			if isgraphics(hQuiverObjects(ith_quiver))
-    				delete(hQuiverObjects(ith_quiver));
-    			end
-    		end
-    	end
-
-    	hQuiverObjects = gobjects(0);
-    end
-
-    function updateDirectedPathObjects(directedPathXY)
-    	% Draws arrows between consecutive valid points in directed path mode.
-    	%
-    	% In normal XY axes, arrows are drawn using quiver.
-    	% In GeographicAxes, arrows are drawn manually using geoplot because
-    	% quiver is not compatible with GeographicAxes in the same way.
-
-    	deleteQuiverObjects();
-
-    	subPaths = fcn_INTERNAL_splitPathByNaNs(directedPathXY);
-
-    	for ith_subpath = 1:length(subPaths)
-
-    		thisPathXY = subPaths{ith_subpath};
-
-    		if size(thisPathXY,1) >= 2
-
-    			if flag_isGeoPlot
-
-    				% GeographicAxes case.
-    				% pathXY is assumed to be [Latitude Longitude].
-    				for ith_segment = 1:(size(thisPathXY,1)-1)
-
-    					latStart = thisPathXY(ith_segment,1);
-    					lonStart = thisPathXY(ith_segment,2);
-
-    					latEnd = thisPathXY(ith_segment+1,1);
-    					lonEnd = thisPathXY(ith_segment+1,2);
-
-    					dLat = latEnd - latStart;
-    					dLon = lonEnd - lonStart;
-
-    					segmentLength = hypot(dLat,dLon);
-
-    					if segmentLength <= 0
-    						continue;
-    					end
-
-    					% Unit direction vector in latitude/longitude space
-    					unitLat = dLat/segmentLength;
-    					unitLon = dLon/segmentLength;
-
-    					% Arrow head size, relative to segment length
-    					arrowHeadLength = 0.25*segmentLength;
-    					arrowHeadWidth  = 0.12*segmentLength;
-
-    					% Base point of the arrow head
-    					latBase = latEnd - arrowHeadLength*unitLat;
-    					lonBase = lonEnd - arrowHeadLength*unitLon;
-
-    					% Perpendicular vector
-    					perpLat = -unitLon;
-    					perpLon =  unitLat;
-
-    					% Arrow head left and right points
-    					latLeft = latBase + arrowHeadWidth*perpLat;
-    					lonLeft = lonBase + arrowHeadWidth*perpLon;
-
-    					latRight = latBase - arrowHeadWidth*perpLat;
-    					lonRight = lonBase - arrowHeadWidth*perpLon;
-
-    					% Draw main arrow shaft
-    					hQuiverObjects(end+1) = geoplot(ax, ...
-    						[latStart latEnd], ...
-    						[lonStart lonEnd], ...
-    						'r-', ...
-    						'LineWidth',1.5, ...
-    						'HandleVisibility','off'); %#ok<AGROW>
-
-    					% Draw arrow head
-    					hQuiverObjects(end+1) = geoplot(ax, ...
-    						[latLeft latEnd latRight], ...
-    						[lonLeft lonEnd lonRight], ...
-    						'r-', ...
-    						'LineWidth',1.5, ...
-    						'HandleVisibility','off'); %#ok<AGROW>
-    				end
-
-    			else
-
-    				% Normal XY axes case
-    				xStart = thisPathXY(1:end-1,1);
-    				yStart = thisPathXY(1:end-1,2);
-
-    				dx = thisPathXY(2:end,1) - thisPathXY(1:end-1,1);
-    				dy = thisPathXY(2:end,2) - thisPathXY(1:end-1,2);
-
-    				hQuiverObjects(end+1) = quiver(ax, ...
-    					xStart, yStart, dx, dy, ...
-    					0, ...
-    					'Color','r', ...
-    					'LineWidth',1.5, ...
-    					'MaxHeadSize',0.5, ...
-    					'HandleVisibility','off'); %#ok<AGROW>
-    			end
-    		end
-    	end
-
-    	if isgraphics(hPoints)
-    		uistack(hPoints,'top');
-    	end
-    end
-    function updateOneSidedSegmentObjects(segmentXY)
-        % Draws a perpendicular arrow showing the positive side of each segment.
-        % The positive side is the left side when moving from start point to end point.
-
-        deleteQuiverObjects();
-
-        subPaths = fcn_INTERNAL_splitPathByNaNs(segmentXY);
-
-        for ith_subpath = 1:length(subPaths)
-
-            thisSegmentXY = subPaths{ith_subpath};
-
-            if size(thisSegmentXY,1) < 2
-                continue;
-            end
-
-            pointStart = thisSegmentXY(1,:);
-            pointEnd   = thisSegmentXY(2,:);
-
-            dx = pointEnd(1) - pointStart(1);
-            dy = pointEnd(2) - pointStart(2);
-
-            segmentLength = hypot(dx,dy);
-
-            if segmentLength <= 0
-                continue;
-            end
-
-            midPoint = 0.5*(pointStart + pointEnd);
-
-            % Positive side: left side when moving from start to end
-            normalVector = [-dy dx] ./ segmentLength;
-
-            arrowLength = 0.18 * segmentLength;
-
-            if flag_isGeoPlot
-
-                % GeographicAxes case.
-                % pathXY is assumed to be [Latitude Longitude].
-                % Work in local meter coordinates instead of raw lat/lon degrees.
-
-                latStart = pointStart(1);
-                lonStart = pointStart(2);
-
-                latEnd = pointEnd(1);
-                lonEnd = pointEnd(2);
-
-                latRef = 0.5*(latStart + latEnd);
-
-                metersPerDegLat = 111320;
-                metersPerDegLon = 111320*cosd(latRef);
-
-                xStart_m = lonStart * metersPerDegLon;
-                yStart_m = latStart * metersPerDegLat;
-
-                xEnd_m = lonEnd * metersPerDegLon;
-                yEnd_m = latEnd * metersPerDegLat;
-
-                dx_m = xEnd_m - xStart_m;
-                dy_m = yEnd_m - yStart_m;
-
-                segmentLength_m = hypot(dx_m,dy_m);
-
-                if segmentLength_m <= 0
-                    continue;
-                end
-
-                midX_m = 0.5*(xStart_m + xEnd_m);
-                midY_m = 0.5*(yStart_m + yEnd_m);
-
-                % Positive side: left side when moving from start to end
-                normalX_m = -dy_m/segmentLength_m;
-                normalY_m =  dx_m/segmentLength_m;
-
-                % Side arrow length in meters
-                arrowLength_m = 0.18 * segmentLength_m;
-
-                xArrowStart_m = midX_m;
-                yArrowStart_m = midY_m;
-
-                xArrowEnd_m = midX_m + arrowLength_m*normalX_m;
-                yArrowEnd_m = midY_m + arrowLength_m*normalY_m;
-
-                latStartArrow = yArrowStart_m / metersPerDegLat;
-                lonStartArrow = xArrowStart_m / metersPerDegLon;
-
-                latEndArrow = yArrowEnd_m / metersPerDegLat;
-                lonEndArrow = xArrowEnd_m / metersPerDegLon;
-
-                % Draw perpendicular side indicator shaft
-                hQuiverObjects(end+1) = geoplot(ax, ...
-                    [latStartArrow latEndArrow], ...
-                    [lonStartArrow lonEndArrow], ...
-                    'r-', ...
-                    'LineWidth',4, ...
-                    'HandleVisibility','off'); %#ok<AGROW>
-
-                % Arrow head in local meter coordinates
-                headLength_m = 0.20 * arrowLength_m;
-                headWidth_m  = 0.12 * arrowLength_m;
-
-                headTip_m  = [xArrowEnd_m yArrowEnd_m];
-                headBase_m = headTip_m - headLength_m*[normalX_m normalY_m];
-
-                arrowPerp_m = [-normalY_m normalX_m];
-
-                headLeft_m  = headBase_m + headWidth_m*arrowPerp_m;
-                headRight_m = headBase_m - headWidth_m*arrowPerp_m;
-
-                latHeadLeft  = headLeft_m(2) / metersPerDegLat;
-                lonHeadLeft  = headLeft_m(1) / metersPerDegLon;
-
-                latHeadRight = headRight_m(2) / metersPerDegLat;
-                lonHeadRight = headRight_m(1) / metersPerDegLon;
-
-                latHeadTip = headTip_m(2) / metersPerDegLat;
-                lonHeadTip = headTip_m(1) / metersPerDegLon;
-
-                % Draw arrow head left side
-                hQuiverObjects(end+1) = geoplot(ax, ...
-                    [latHeadLeft latHeadTip], ...
-                    [lonHeadLeft lonHeadTip], ...
-                    'r-', ...
-                    'LineWidth',4, ...
-                    'HandleVisibility','off'); %#ok<AGROW>
-
-                % Draw arrow head right side
-                hQuiverObjects(end+1) = geoplot(ax, ...
-                    [latHeadRight latHeadTip], ...
-                    [lonHeadRight lonHeadTip], ...
-                    'r-', ...
-                    'LineWidth',4, ...
-                    'HandleVisibility','off'); %#ok<AGROW>
-
-            else
-
-                % Normal XY axes case
-                hQuiverObjects(end+1) = quiver(ax, ...
-                    midPoint(1), midPoint(2), ...
-                    arrowLength*normalVector(1), arrowLength*normalVector(2), ...
-                    0, ...
-                    'Color','r', ...
-                    'LineWidth',3, ...
-                    'MaxHeadSize',1.5, ...
-                    'HandleVisibility','off'); %#ok<AGROW>
-            end
-        end
-
-        if isgraphics(hPoints)
-            uistack(hPoints,'top');
-        end
-    end
+% function updatePatchObjects(patchXY)
+% 	% Deletes and redraws separate filled patch objects.
+% 	% Each subpath separated by [NaN NaN] becomes its own patch.
+%
+% 	% Delete old patch objects
+% 	if ~isempty(hPatchObjects)
+% 		for ith_patch = 1:length(hPatchObjects)
+% 			if isgraphics(hPatchObjects(ith_patch))
+% 				delete(hPatchObjects(ith_patch));
+% 			end
+% 		end
+% 	end
+%
+% 	hPatchObjects = gobjects(0);
+%
+% 	% Split into separate patch candidates
+% 	subPaths = fcn_INTERNAL_splitPathByNaNs(patchXY);
+%
+% 	for ith_subpath = 1:length(subPaths)
+%
+% 		thisPatchXY = subPaths{ith_subpath};
+%
+% 		% A patch needs at least 3 valid points
+%         if size(thisPatchXY,1) >= 3
+%
+%             if flag_isGeoPlot
+%     	        % GeographicAxes case.
+%     	        % pathXY/geoplot data are assumed to be [Latitude Longitude].
+%     	        latitudes  = thisPatchXY(:,1);
+%     	        longitudes = thisPatchXY(:,2);
+%
+%                 % Ensure the polygon is explicitly closed
+%                 if ~isequal([latitudes(1) longitudes(1)], [latitudes(end) longitudes(end)])
+%     	            latitudes  = [latitudes; latitudes(1)];
+%     	            longitudes = [longitudes; longitudes(1)];
+%                 end
+%
+%     	        % geopolyshape expects valid polygon topology. For outer boundaries,
+%     	        % clockwise vertex order is generally required.
+%     	        % Use longitude as X and latitude as Y for the signed area check.
+%     	        signedArea = 0.5 * sum( ...
+%     		        longitudes(1:end-1).*latitudes(2:end) - ...
+%     		        longitudes(2:end).*latitudes(1:end-1));
+%
+%     	        % Positive signed area means counter-clockwise, so reverse it
+%     	        if signedArea > 0
+%     		        latitudes  = flipud(latitudes);
+%     		        longitudes = flipud(longitudes);
+%     	        end
+%
+%     	        geoPatchShape = geopolyshape(latitudes, longitudes);
+%
+%     	        hPatchObjects(end+1) = geoplot(ax, geoPatchShape, ...
+%     		        'FaceColor','red', ...
+%     		        'FaceAlpha',0.2, ...
+%     		        'EdgeColor','red', ...
+%     		        'LineWidth',1.5, ...
+%     		        'HandleVisibility','off');
+%
+% 			else
+% 				% Normal XY axes case
+% 				hPatchObjects(end+1) = patch('XData',thisPatchXY(:,1), ...
+% 					'YData',thisPatchXY(:,2), ...
+% 					'FaceColor','red', ...
+% 					'FaceAlpha',0.2, ...
+% 					'EdgeColor','red', ...
+% 					'LineWidth',1.5, ...
+% 					'HitTest','off', ...
+% 					'PickableParts','none', ...
+% 					'HandleVisibility','off'); %#ok<AGROW>
+%             end
+%         end
+% 	end
+%
+% 	% Keep clicked points/line above filled patches
+%     if isgraphics(hPoints)
+% 		uistack(hPoints,'top');
+%     end
+% end
+%
+% function deleteQuiverObjects()
+% 	% Deletes old quiver objects used by directed path and one-sided segment modes.
+%
+% 	if ~isempty(hQuiverObjects)
+% 		for ith_quiver = 1:length(hQuiverObjects)
+% 			if isgraphics(hQuiverObjects(ith_quiver))
+% 				delete(hQuiverObjects(ith_quiver));
+% 			end
+% 		end
+% 	end
+%
+% 	hQuiverObjects = gobjects(0);
+% end
+
+% function updateDirectedPathObjects(directedPathXY)
+% 	% Draws arrows between consecutive valid points in directed path mode.
+% 	%
+% 	% In normal XY axes, arrows are drawn using quiver.
+% 	% In GeographicAxes, arrows are drawn manually using geoplot because
+% 	% quiver is not compatible with GeographicAxes in the same way.
+%
+% 	deleteQuiverObjects();
+%
+% 	subPaths = fcn_INTERNAL_splitPathByNaNs(directedPathXY);
+%
+% 	for ith_subpath = 1:length(subPaths)
+%
+% 		thisPathXY = subPaths{ith_subpath};
+%
+% 		if size(thisPathXY,1) >= 2
+%
+% 			if flag_isGeoPlot
+%
+% 				% GeographicAxes case.
+% 				% pathXY is assumed to be [Latitude Longitude].
+% 				for ith_segment = 1:(size(thisPathXY,1)-1)
+%
+% 					latStart = thisPathXY(ith_segment,1);
+% 					lonStart = thisPathXY(ith_segment,2);
+%
+% 					latEnd = thisPathXY(ith_segment+1,1);
+% 					lonEnd = thisPathXY(ith_segment+1,2);
+%
+% 					dLat = latEnd - latStart;
+% 					dLon = lonEnd - lonStart;
+%
+% 					segmentLength = hypot(dLat,dLon);
+%
+% 					if segmentLength <= 0
+% 						continue;
+% 					end
+%
+% 					% Unit direction vector in latitude/longitude space
+% 					unitLat = dLat/segmentLength;
+% 					unitLon = dLon/segmentLength;
+%
+% 					% Arrow head size, relative to segment length
+% 					arrowHeadLength = 0.25*segmentLength;
+% 					arrowHeadWidth  = 0.12*segmentLength;
+%
+% 					% Base point of the arrow head
+% 					latBase = latEnd - arrowHeadLength*unitLat;
+% 					lonBase = lonEnd - arrowHeadLength*unitLon;
+%
+% 					% Perpendicular vector
+% 					perpLat = -unitLon;
+% 					perpLon =  unitLat;
+%
+% 					% Arrow head left and right points
+% 					latLeft = latBase + arrowHeadWidth*perpLat;
+% 					lonLeft = lonBase + arrowHeadWidth*perpLon;
+%
+% 					latRight = latBase - arrowHeadWidth*perpLat;
+% 					lonRight = lonBase - arrowHeadWidth*perpLon;
+%
+% 					% Draw main arrow shaft
+% 					hQuiverObjects(end+1) = geoplot(ax, ...
+% 						[latStart latEnd], ...
+% 						[lonStart lonEnd], ...
+% 						'r-', ...
+% 						'LineWidth',1.5, ...
+% 						'HandleVisibility','off'); %#ok<AGROW>
+%
+% 					% Draw arrow head
+% 					hQuiverObjects(end+1) = geoplot(ax, ...
+% 						[latLeft latEnd latRight], ...
+% 						[lonLeft lonEnd lonRight], ...
+% 						'r-', ...
+% 						'LineWidth',1.5, ...
+% 						'HandleVisibility','off'); %#ok<AGROW>
+% 				end
+%
+% 			else
+%
+% 				% Normal XY axes case
+% 				xStart = thisPathXY(1:end-1,1);
+% 				yStart = thisPathXY(1:end-1,2);
+%
+% 				dx = thisPathXY(2:end,1) - thisPathXY(1:end-1,1);
+% 				dy = thisPathXY(2:end,2) - thisPathXY(1:end-1,2);
+%
+% 				hQuiverObjects(end+1) = quiver(ax, ...
+% 					xStart, yStart, dx, dy, ...
+% 					0, ...
+% 					'Color','r', ...
+% 					'LineWidth',1.5, ...
+% 					'MaxHeadSize',0.5, ...
+% 					'HandleVisibility','off'); %#ok<AGROW>
+% 			end
+% 		end
+% 	end
+%
+% 	if isgraphics(hPoints)
+% 		uistack(hPoints,'top');
+% 	end
+% end
+% function updateOneSidedSegmentObjects(segmentXY)
+%     % Draws a perpendicular arrow showing the positive side of each segment.
+%     % The positive side is the left side when moving from start point to end point.
+%
+%     deleteQuiverObjects();
+%
+%     subPaths = fcn_INTERNAL_splitPathByNaNs(segmentXY);
+%
+%     for ith_subpath = 1:length(subPaths)
+%
+%         thisSegmentXY = subPaths{ith_subpath};
+%
+%         if size(thisSegmentXY,1) < 2
+%             continue;
+%         end
+%
+%         pointStart = thisSegmentXY(1,:);
+%         pointEnd   = thisSegmentXY(2,:);
+%
+%         dx = pointEnd(1) - pointStart(1);
+%         dy = pointEnd(2) - pointStart(2);
+%
+%         segmentLength = hypot(dx,dy);
+%
+%         if segmentLength <= 0
+%             continue;
+%         end
+%
+%         midPoint = 0.5*(pointStart + pointEnd);
+%
+%         % Positive side: left side when moving from start to end
+%         normalVector = [-dy dx] ./ segmentLength;
+%
+%         arrowLength = 0.18 * segmentLength;
+%
+%         if flag_isGeoPlot
+%
+%             % GeographicAxes case.
+%             % pathXY is assumed to be [Latitude Longitude].
+%             % Work in local meter coordinates instead of raw lat/lon degrees.
+%
+%             latStart = pointStart(1);
+%             lonStart = pointStart(2);
+%
+%             latEnd = pointEnd(1);
+%             lonEnd = pointEnd(2);
+%
+%             latRef = 0.5*(latStart + latEnd);
+%
+%             metersPerDegLat = 111320;
+%             metersPerDegLon = 111320*cosd(latRef);
+%
+%             xStart_m = lonStart * metersPerDegLon;
+%             yStart_m = latStart * metersPerDegLat;
+%
+%             xEnd_m = lonEnd * metersPerDegLon;
+%             yEnd_m = latEnd * metersPerDegLat;
+%
+%             dx_m = xEnd_m - xStart_m;
+%             dy_m = yEnd_m - yStart_m;
+%
+%             segmentLength_m = hypot(dx_m,dy_m);
+%
+%             if segmentLength_m <= 0
+%                 continue;
+%             end
+%
+%             midX_m = 0.5*(xStart_m + xEnd_m);
+%             midY_m = 0.5*(yStart_m + yEnd_m);
+%
+%             % Positive side: left side when moving from start to end
+%             normalX_m = -dy_m/segmentLength_m;
+%             normalY_m =  dx_m/segmentLength_m;
+%
+%             % Side arrow length in meters
+%             arrowLength_m = 0.18 * segmentLength_m;
+%
+%             xArrowStart_m = midX_m;
+%             yArrowStart_m = midY_m;
+%
+%             xArrowEnd_m = midX_m + arrowLength_m*normalX_m;
+%             yArrowEnd_m = midY_m + arrowLength_m*normalY_m;
+%
+%             latStartArrow = yArrowStart_m / metersPerDegLat;
+%             lonStartArrow = xArrowStart_m / metersPerDegLon;
+%
+%             latEndArrow = yArrowEnd_m / metersPerDegLat;
+%             lonEndArrow = xArrowEnd_m / metersPerDegLon;
+%
+%             % Draw perpendicular side indicator shaft
+%             hQuiverObjects(end+1) = geoplot(ax, ...
+%                 [latStartArrow latEndArrow], ...
+%                 [lonStartArrow lonEndArrow], ...
+%                 'r-', ...
+%                 'LineWidth',4, ...
+%                 'HandleVisibility','off'); %#ok<AGROW>
+%
+%             % Arrow head in local meter coordinates
+%             headLength_m = 0.20 * arrowLength_m;
+%             headWidth_m  = 0.12 * arrowLength_m;
+%
+%             headTip_m  = [xArrowEnd_m yArrowEnd_m];
+%             headBase_m = headTip_m - headLength_m*[normalX_m normalY_m];
+%
+%             arrowPerp_m = [-normalY_m normalX_m];
+%
+%             headLeft_m  = headBase_m + headWidth_m*arrowPerp_m;
+%             headRight_m = headBase_m - headWidth_m*arrowPerp_m;
+%
+%             latHeadLeft  = headLeft_m(2) / metersPerDegLat;
+%             lonHeadLeft  = headLeft_m(1) / metersPerDegLon;
+%
+%             latHeadRight = headRight_m(2) / metersPerDegLat;
+%             lonHeadRight = headRight_m(1) / metersPerDegLon;
+%
+%             latHeadTip = headTip_m(2) / metersPerDegLat;
+%             lonHeadTip = headTip_m(1) / metersPerDegLon;
+%
+%             % Draw arrow head left side
+%             hQuiverObjects(end+1) = geoplot(ax, ...
+%                 [latHeadLeft latHeadTip], ...
+%                 [lonHeadLeft lonHeadTip], ...
+%                 'r-', ...
+%                 'LineWidth',4, ...
+%                 'HandleVisibility','off'); %#ok<AGROW>
+%
+%             % Draw arrow head right side
+%             hQuiverObjects(end+1) = geoplot(ax, ...
+%                 [latHeadRight latHeadTip], ...
+%                 [lonHeadRight lonHeadTip], ...
+%                 'r-', ...
+%                 'LineWidth',4, ...
+%                 'HandleVisibility','off'); %#ok<AGROW>
+%
+%         else
+%
+%             % Normal XY axes case
+%             hQuiverObjects(end+1) = quiver(ax, ...
+%                 midPoint(1), midPoint(2), ...
+%                 arrowLength*normalVector(1), arrowLength*normalVector(2), ...
+%                 0, ...
+%                 'Color','r', ...
+%                 'LineWidth',3, ...
+%                 'MaxHeadSize',1.5, ...
+%                 'HandleVisibility','off'); %#ok<AGROW>
+%         end
+%     end
+%
+%     if isgraphics(hPoints)
+%         uistack(hPoints,'top');
+%     end
+% end
     function legendItemClicked(~, event)
         s = getappdata(figNum,'HoldPanState');
         s.legendClicked = true;
@@ -974,7 +978,7 @@ end
 
 
     function onClick(~,~)
-    	% Called when a plot is clicked
+        % Called when a plot is clicked
 
         if ~ishandle(ax)
             return;
@@ -994,30 +998,30 @@ end
             currentPointXY = getCurrentPointXY();
             s.startPoint = currentPointXY;
 
-    		% Get current axis limits
-  	      if flag_isGeoPlot
-              [latlimOut,lonlimOut] = geolimits;
+            % Get current axis limits
+            if flag_isGeoPlot
+                [latlimOut,lonlimOut] = geolimits;
 
-              % In GeographicAxes, pathXY is stored as [Latitude Longitude].
-              % Therefore, startXLim corresponds to the first column latitude,
-              % and startYLim corresponds to the second column longitude.
-              s.startXLim = latlimOut;
-              s.startYLim = lonlimOut;
-          else
-              s.startXLim = ax.XLim;
-              s.startYLim = ax.YLim;
-          end
-  		% Check whether the click is close to an existing point
-        closestIndex = fcn_INTERNAL_findNearestPointIndex( ...
-            s.startXLim, s.startYLim, pathXY, currentPointXY, 0.01);
+                % In GeographicAxes, pathXY is stored as [Latitude Longitude].
+                % Therefore, startXLim corresponds to the first column latitude,
+                % and startYLim corresponds to the second column longitude.
+                s.startXLim = latlimOut;
+                s.startYLim = lonlimOut;
+            else
+                s.startXLim = ax.XLim;
+                s.startYLim = ax.YLim;
+            end
+            % Check whether the click is close to an existing point
+            closestIndex = fcn_INTERNAL_findNearestPointIndex( ...
+                s.startXLim, s.startYLim, pathXY, currentPointXY, 0.01);
 
-        s.MoveIndex = closestIndex;
+            s.MoveIndex = closestIndex;
 
-        % Save current state
-        setappdata(figNum,'HoldPanState',s);
+            % Save current state
+            setappdata(figNum,'HoldPanState',s);
 
-        % enable motion callback
-        set(figNum,'WindowButtonMotionFcn',@onMouseMove);
+            % enable motion callback
+            set(figNum,'WindowButtonMotionFcn',@onMouseMove);
 
         elseif strcmp(sel,'alt')
             pathXY(end+1,:) = [nan nan];         % append nan
@@ -1028,7 +1032,9 @@ end
             s.ignoreNextButtonUp = true;
             setappdata(figNum,'HoldPanState',s);
 
-            updateDrawing();                      % update immediately	    else
+            hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+            % updateDrawing();                      % update immediately	    else
+
             return;
         end
     end
@@ -1039,7 +1045,7 @@ end
 
         s = getappdata(figNum,'HoldPanState');
 
-    	% If mouse is not down, only update coordinate display.
+        % If mouse is not down, only update coordinate display.
         if ~s.active
             return;
         end
@@ -1053,7 +1059,7 @@ end
             return;
         end
 
-    	normalizedChange = norm(positionChange ./ [xAxisRange yAxisRange]);
+        normalizedChange = norm(positionChange ./ [xAxisRange yAxisRange]);
 
         % Ignore tiny mouse movements during normal clicks
         dragThreshold = 0.02;
@@ -1067,7 +1073,7 @@ end
 
         if isempty(s.MoveIndex)
 
-    		% Pan mode
+            % Pan mode
             dx = currentPointXY(1) - s.startPoint(1);
             dy = currentPointXY(2) - s.startPoint(2);
 
@@ -1089,7 +1095,7 @@ end
             end
 
         else
-    		% Move point mode
+            % Move point mode
             xl = s.startXLim;
             yl = s.startYLim;
 
@@ -1098,14 +1104,16 @@ end
 
             pathXY(s.MoveIndex,:) = [newx newy];
 
-            updateDrawing();
+            % updateDrawing();
+            hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+
         end
 
         drawnow limitrate;
     end
 
     function onButtonUp(~,~)
-    	s = getappdata(figNum,'HoldPanState');
+        s = getappdata(figNum,'HoldPanState');
 
         if isfield(s,'ignoreNextButtonUp') && s.ignoreNextButtonUp
             s.ignoreNextButtonUp = false;
@@ -1113,27 +1121,27 @@ end
             return;
         end
 
-    	if s.active
-    		s.active = false;
-    	end
+        if s.active
+            s.active = false;
+        end
 
-    	if s.legendClicked
-    		s.legendClicked = false;
-    		setappdata(figNum,'HoldPanState',s);
-    		return;
-    	end
+        if s.legendClicked
+            s.legendClicked = false;
+            setappdata(figNum,'HoldPanState',s);
+            return;
+        end
 
-    	% If the user dragged, do not add a new point
-    	if isfield(s,'hasDragged') && s.hasDragged
-    		s.hasDragged = false;
-    		setappdata(figNum,'HoldPanState',s);
-    		return;
-    	end
+        % If the user dragged, do not add a new point
+        if isfield(s,'hasDragged') && s.hasDragged
+            s.hasDragged = false;
+            setappdata(figNum,'HoldPanState',s);
+            return;
+        end
 
-    	% If no drag occurred, treat this as a click and add a point
-    	currentPointXY = getCurrentPointXY();
-    	x = currentPointXY(1);
-    	y = currentPointXY(2);
+        % If no drag occurred, treat this as a click and add a point
+        currentPointXY = getCurrentPointXY();
+        x = currentPointXY(1);
+        y = currentPointXY(2);
 
         if strcmp(inputType,'aabb')
             validRows = ~any(isnan(pathXY),2);
@@ -1168,8 +1176,22 @@ end
             end
         end
 
-    	setappdata(figNum,'HoldPanState',s);
-    	updateDrawing();
+        setappdata(figNum,'HoldPanState',s);
+
+        
+        % For the input types that use arrays of handles, set these up
+        if any(strcmp(inputType,{'patch','directedpath','onesidedsegment'}))
+            if ~iscell(hPoints)
+                temp = hPoints;
+                hPoints = cell(2,1);
+                hPoints{1} = temp;
+                hPoints{2} = gobjects(0);
+            end
+        end
+
+        % updateDrawing();
+        hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+
     end
 
     function onKey(~,event)
@@ -1194,12 +1216,14 @@ end
                 if isempty(pathXY)
                     pathXY = [nan nan];
                 end
-                updateDrawing();                    % update immediately
+
+                % updateDrawing();
+                hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
 
             case 'i' % Insert a new point into the nearest path segment
 
-            	% Get current cursor point
-            	currentPointXY = getCurrentPointXY();
+                % Get current cursor point
+                currentPointXY = getCurrentPointXY();
 
                 if strcmp(inputType,'aabb')
                     % aabb mode only keeps two corner points
@@ -1226,116 +1250,118 @@ end
                         pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,currentPointXY);
                     end
 
-            	elseif strcmp(inputType,'points')
-            		% In points mode there are no line segments, so append the point.
-            		if isempty(pathXY) || all(isnan(pathXY),'all')
-            			pathXY = currentPointXY;
-            		else
-            			pathXY(end+1,:) = currentPointXY;
-            		end
+                elseif strcmp(inputType,'points')
+                    % In points mode there are no line segments, so append the point.
+                    if isempty(pathXY) || all(isnan(pathXY),'all')
+                        pathXY = currentPointXY;
+                    else
+                        pathXY(end+1,:) = currentPointXY;
+                    end
 
-            	else
-            		% In path and patch modes, insert the point into the nearest segment.
+                else
+                    % In path and patch modes, insert the point into the nearest segment.
 
-            		if isempty(pathXY) || all(isnan(pathXY),'all')
-            			pathXY = currentPointXY;
+                    if isempty(pathXY) || all(isnan(pathXY),'all')
+                        pathXY = currentPointXY;
 
-            		else
-            			% Break path into subpaths because snap/insertion cannot work
-            			% directly across [NaN NaN] separator rows.
-            			cellArrayOfSubPathIndices = fcn_DebugTools_breakArrayByNans(pathXY,-1);
+                    else
+                        % Break path into subpaths because snap/insertion cannot work
+                        % directly across [NaN NaN] separator rows.
+                        cellArrayOfSubPathIndices = fcn_DebugTools_breakArrayByNans(pathXY,-1);
 
-            			nearestDistance = inf;
-            			first_path_point_index = [];
-            			second_path_point_index = [];
-            			flag_isStartOrEnd = 0;
+                        nearestDistance = inf;
+                        first_path_point_index = [];
+                        second_path_point_index = [];
+                        flag_isStartOrEnd = 0;
 
-            			for ith_subpath = 1:length(cellArrayOfSubPathIndices)
+                        for ith_subpath = 1:length(cellArrayOfSubPathIndices)
 
-            				thisIndices = cellArrayOfSubPathIndices{ith_subpath};
-            				thisSubPath = pathXY(thisIndices,:);
+                            thisIndices = cellArrayOfSubPathIndices{ith_subpath};
+                            thisSubPath = pathXY(thisIndices,:);
 
-            				% Skip empty or invalid subpaths
-            				if isempty(thisSubPath) || all(isnan(thisSubPath),'all')
-            					continue;
-            				end
+                            % Skip empty or invalid subpaths
+                            if isempty(thisSubPath) || all(isnan(thisSubPath),'all')
+                                continue;
+                            end
 
-            				thisOffsetIndex = thisIndices(1);
+                            thisOffsetIndex = thisIndices(1);
 
-            				if size(thisSubPath,1) == 1
-            					% With only one point, compare directly to that point.
-            					thisDistance = sum((thisSubPath(1,:) - currentPointXY).^2);
+                            if size(thisSubPath,1) == 1
+                                % With only one point, compare directly to that point.
+                                thisDistance = sum((thisSubPath(1,:) - currentPointXY).^2);
 
-            					if thisDistance < nearestDistance
-            						nearestDistance = thisDistance;
-            						first_path_point_index = thisOffsetIndex;
-            						second_path_point_index = thisOffsetIndex;
-            						flag_isStartOrEnd = 1;
-            					end
+                                if thisDistance < nearestDistance
+                                    nearestDistance = thisDistance;
+                                    first_path_point_index = thisOffsetIndex;
+                                    second_path_point_index = thisOffsetIndex;
+                                    flag_isStartOrEnd = 1;
+                                end
 
-            				else
-            					% Snap point onto nearest path segment
-            					[closest_path_point,~,~, ...
-            						this_first_path_point_index, ...
-            						this_second_path_point_index, ...
-            						~] = fcn_Path_snapPointOntoNearestPath(currentPointXY, thisSubPath, -1);
+                            else
+                                % Snap point onto nearest path segment
+                                [closest_path_point,~,~, ...
+                                    this_first_path_point_index, ...
+                                    this_second_path_point_index, ...
+                                    ~] = fcn_Path_snapPointOntoNearestPath(currentPointXY, thisSubPath, -1);
 
-            					thisDistance = sum((closest_path_point-currentPointXY).^2,2);
+                                thisDistance = sum((closest_path_point-currentPointXY).^2,2);
 
-            					if thisDistance < nearestDistance
-            						nearestDistance = thisDistance;
-            						first_path_point_index = this_first_path_point_index + thisOffsetIndex - 1;
-            						second_path_point_index = this_second_path_point_index + thisOffsetIndex - 1;
+                                if thisDistance < nearestDistance
+                                    nearestDistance = thisDistance;
+                                    first_path_point_index = this_first_path_point_index + thisOffsetIndex - 1;
+                                    second_path_point_index = this_second_path_point_index + thisOffsetIndex - 1;
 
-            						flag_isStartOrEnd = 0;
-            						if this_first_path_point_index == this_second_path_point_index
-            							if this_first_path_point_index == 1
-            								flag_isStartOrEnd = -1;
-            							else
-            								flag_isStartOrEnd = 1;
-            							end
-            						end
-            					end
-            				end
-            			end
+                                    flag_isStartOrEnd = 0;
+                                    if this_first_path_point_index == this_second_path_point_index
+                                        if this_first_path_point_index == 1
+                                            flag_isStartOrEnd = -1;
+                                        else
+                                            flag_isStartOrEnd = 1;
+                                        end
+                                    end
+                                end
+                            end
+                        end
 
-            			% If no valid insertion location was found, append as fallback
-            			if isempty(first_path_point_index) || isempty(second_path_point_index)
-            				pathXY(end+1,:) = currentPointXY;
+                        % If no valid insertion location was found, append as fallback
+                        if isempty(first_path_point_index) || isempty(second_path_point_index)
+                            pathXY(end+1,:) = currentPointXY;
 
-            			elseif first_path_point_index == second_path_point_index
+                        elseif first_path_point_index == second_path_point_index
 
-            				if first_path_point_index == 1
-            					% Insert at very front
-            					pathXY = [currentPointXY; pathXY];
+                            if first_path_point_index == 1
+                                % Insert at very front
+                                pathXY = [currentPointXY; pathXY];
 
-            				elseif first_path_point_index == size(pathXY,1)
-            					% Insert at very end
-            					pathXY = [pathXY; currentPointXY];
+                            elseif first_path_point_index == size(pathXY,1)
+                                % Insert at very end
+                                pathXY = [pathXY; currentPointXY];
 
-            				elseif flag_isStartOrEnd == -1
-            					% Insert at front of subsegment but not very front
-            					pathXY = [pathXY(1:first_path_point_index-1,:); ...
-            						currentPointXY; ...
-            						pathXY(first_path_point_index:end,:)];
+                            elseif flag_isStartOrEnd == -1
+                                % Insert at front of subsegment but not very front
+                                pathXY = [pathXY(1:first_path_point_index-1,:); ...
+                                    currentPointXY; ...
+                                    pathXY(first_path_point_index:end,:)];
 
-            				else
-            					% Insert at end of subsegment but not very end
-            					pathXY = [pathXY(1:first_path_point_index,:); ...
-            						currentPointXY; ...
-            						pathXY(first_path_point_index+1:end,:)];
-            				end
+                            else
+                                % Insert at end of subsegment but not very end
+                                pathXY = [pathXY(1:first_path_point_index,:); ...
+                                    currentPointXY; ...
+                                    pathXY(first_path_point_index+1:end,:)];
+                            end
 
-            			else
-            				% Insert between nearest segment endpoints
-            				pathXY = [pathXY(1:first_path_point_index,:); ...
-            					currentPointXY; ...
-            					pathXY(second_path_point_index:end,:)];
-            			end
-            		end
-            	end
+                        else
+                            % Insert between nearest segment endpoints
+                            pathXY = [pathXY(1:first_path_point_index,:); ...
+                                currentPointXY; ...
+                                pathXY(second_path_point_index:end,:)];
+                        end
+                    end
+                end
 
-            	updateDrawing();
+                % updateDrawing();
+                hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+
             case 'd' % Delete a point
                 if size(pathXY,1)<2
                     pathXY = [nan nan];
@@ -1366,7 +1392,8 @@ end
                 % Remove it from the list
                 pathXY(closestIndex,:) = [];
 
-                updateDrawing();                      % update immediately
+                % updateDrawing();
+                hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
 
             otherwise
                 % No action for this keypress
