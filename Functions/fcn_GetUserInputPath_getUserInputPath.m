@@ -212,6 +212,10 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 % 2026_06_09 by Sean Brennan, sbrennan@psu.edu
 % - In fcn_GetUserInputPath_getUserInputPath
 %   % * Added calls to fcn_GetUserInputPath_updateDrawing
+%
+% 2026_06_09 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Quite a few bug fixes. Geoplot still not working.
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
@@ -366,8 +370,7 @@ if isempty(pathXY)
 end
 
 
-% Create a plot
-% Create the user input drawing object
+% Create the hPoints handle for the input
 switch inputType
     case 'path'
         if flag_isGeoPlot
@@ -451,7 +454,7 @@ switch inputType
         error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
 end
 
-if isempty(hPoints) || ~isgraphics(hPoints)
+if ~iscell(hPoints) && (isempty(hPoints) || ~isgraphics(hPoints))
     error('hPoints was not created. Check inputType and drawing object creation.');
 end
 
@@ -502,7 +505,6 @@ set(h_fig, ...
 title({'Click to add points. Right-click inserts gap. Click-drag shifts point or moves axis.', ...
     '(-) removes prior point. (d) deletes closest point. (i) inserts point. Press Enter to finish.'});
 
-uiwait(figNum);    % block until uiresume or figure closed
 
 % If in aabb mode, return the final aabb instead of the two raw clicked points
 if strcmp(inputType,'aabb')
@@ -519,6 +521,14 @@ if strcmp(inputType,'onesidedsegment')
     pathXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
     closedAreaXY = [];
 end
+
+% For the input types that use arrays of handles, set these up
+hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
+
+% updateDrawing();
+hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+
+uiwait(figNum);    % block until uiresume or figure closed
 
 % function updateDrawing()
 % 	% Updates the drawing based on the selected inputType
@@ -580,9 +590,17 @@ end
 %     end
 % end
 
-    function currentPointXY = getCurrentPointXY()
+    function currentPointXY = getCurrentPointXY(src,event) %#ok<INUSD>
+        % Figure out which axis was called?
+        tempHandle = hittest(src);                    % graphics object under pointer (may be [] or the axes/line/etc.)
+        tempAxisHandle = ancestor(tempHandle,'axes');
+
+        if isempty(tempAxisHandle)
+            tempAxisHandle = gca;
+        end
+
         % Gets current cursor point in the current axes coordinate order.
-        currentPoint = get(ax,'CurrentPoint');
+        currentPoint = get(tempAxisHandle,'CurrentPoint');
         currentPointXY = currentPoint(1,1:2);
     end
 
@@ -977,7 +995,7 @@ end
     end
 
 
-    function onClick(~,~)
+    function onClick(src,event)
         % Called when a plot is clicked
 
         if ~ishandle(ax)
@@ -995,7 +1013,7 @@ end
             s.hasDragged = false;
 
             % starting data point in axes coordinates
-            currentPointXY = getCurrentPointXY();
+            currentPointXY = getCurrentPointXY(src,event);
             s.startPoint = currentPointXY;
 
             % Get current axis limits
@@ -1032,15 +1050,18 @@ end
             s.ignoreNextButtonUp = true;
             setappdata(figNum,'HoldPanState',s);
 
-            hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+            % For the input types that use arrays of handles, set these up
+            hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
+
             % updateDrawing();                      % update immediately	    else
+            hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
 
             return;
         end
     end
 
-    function onMouseMove(~,~)
-        currentPointXY = getCurrentPointXY();
+    function onMouseMove(src,event)
+        currentPointXY = getCurrentPointXY(src,event);
         subtitle(['(X,Y) = (', num2str(currentPointXY(1)), ', ',num2str(currentPointXY(2)), ')']);
 
         s = getappdata(figNum,'HoldPanState');
@@ -1104,15 +1125,25 @@ end
 
             pathXY(s.MoveIndex,:) = [newx newy];
 
-            % updateDrawing();
-            hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+            % Check for the input types that use arrays of handles
+            if iscell(hPoints)
+                temp = hPoints{2};
+                delete(temp);
+                hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
+                fcn_GetUserInputPath_updateDrawing(pathXY,('path'), (hPoints{1}), (figNum));
+
+            else
+                hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
+
+            end
+
 
         end
 
         drawnow limitrate;
     end
 
-    function onButtonUp(~,~)
+    function onButtonUp(src,event)
         s = getappdata(figNum,'HoldPanState');
 
         if isfield(s,'ignoreNextButtonUp') && s.ignoreNextButtonUp
@@ -1135,66 +1166,58 @@ end
         if isfield(s,'hasDragged') && s.hasDragged
             s.hasDragged = false;
             setappdata(figNum,'HoldPanState',s);
-            return;
-        end
-
-        % If no drag occurred, treat this as a click and add a point
-        currentPointXY = getCurrentPointXY();
-        x = currentPointXY(1);
-        y = currentPointXY(2);
-
-        if strcmp(inputType,'aabb')
-            validRows = ~any(isnan(pathXY),2);
-            NvalidPoints = sum(validRows);
-
-            if all(isnan(pathXY),'all')
-                pathXY(1,:) = [x, y];
-
-            elseif NvalidPoints < 2
-                pathXY(end+1,:) = [x, y];
-
-            else
-                validIndices = find(validRows);
-                pathXY(validIndices(2),:) = [x, y];
-            end
-
-        elseif strcmp(inputType,'onesidedsegment')
-
-            newPointXY = [x y];
-
-            if isempty(pathXY) || all(isnan(pathXY),'all')
-                pathXY = newPointXY;
-            else
-                pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,newPointXY);
-            end
-
         else
-            if all(isnan(pathXY),'all')
-                pathXY(1,:) = [x, y];
+
+            % If no drag occurred, treat this as a click and add a point
+            currentPointXY = getCurrentPointXY(src,event);
+            x = currentPointXY(1);
+            y = currentPointXY(2);
+
+            if strcmp(inputType,'aabb')
+                validRows = ~any(isnan(pathXY),2);
+                NvalidPoints = sum(validRows);
+
+                if all(isnan(pathXY),'all')
+                    pathXY(1,:) = [x, y];
+
+                elseif NvalidPoints < 2
+                    pathXY(end+1,:) = [x, y];
+
+                else
+                    validIndices = find(validRows);
+                    pathXY(validIndices(2),:) = [x, y];
+                end
+
+            elseif strcmp(inputType,'onesidedsegment')
+
+                newPointXY = [x y];
+
+                if isempty(pathXY) || all(isnan(pathXY),'all')
+                    pathXY = newPointXY;
+                else
+                    pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,newPointXY);
+                end
+
             else
-                pathXY(end+1,:) = [x y];
+                if all(isnan(pathXY),'all')
+                    pathXY(1,:) = [x, y];
+                else
+                    pathXY(end+1,:) = [x y];
+                end
             end
+
+            setappdata(figNum,'HoldPanState',s);
         end
 
-        setappdata(figNum,'HoldPanState',s);
-
-        
         % For the input types that use arrays of handles, set these up
-        if any(strcmp(inputType,{'patch','directedpath','onesidedsegment'}))
-            if ~iscell(hPoints)
-                temp = hPoints;
-                hPoints = cell(2,1);
-                hPoints{1} = temp;
-                hPoints{2} = gobjects(0);
-            end
-        end
+        hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
 
         % updateDrawing();
         hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
 
     end
 
-    function onKey(~,event)
+    function onKey(src,event)
         % User pressed a key on the keyboard
         keyPress = event.Key;
         % if strcmp(event.Key,'return')
@@ -1217,13 +1240,16 @@ end
                     pathXY = [nan nan];
                 end
 
+                % For the input types that use arrays of handles, set these up
+                hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
+
                 % updateDrawing();
                 hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
 
             case 'i' % Insert a new point into the nearest path segment
 
                 % Get current cursor point
-                currentPointXY = getCurrentPointXY();
+                currentPointXY = getCurrentPointXY(src,event);
 
                 if strcmp(inputType,'aabb')
                     % aabb mode only keeps two corner points
@@ -1359,6 +1385,9 @@ end
                     end
                 end
 
+                % For the input types that use arrays of handles, set these up
+                hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
+
                 % updateDrawing();
                 hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
 
@@ -1369,7 +1398,7 @@ end
                 end
 
                 % Find closest point
-                currentPointXY = getCurrentPointXY();
+                currentPointXY = getCurrentPointXY(src,event);
 
                 % Get current axis limits
                 s = getappdata(figNum,'HoldPanState');
@@ -1391,6 +1420,9 @@ end
 
                 % Remove it from the list
                 pathXY(closestIndex,:) = [];
+
+                % For the input types that use arrays of handles, set these up
+                hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
 
                 % updateDrawing();
                 hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
@@ -1654,3 +1686,17 @@ if isempty(cleanPathXY)
 end
 
 end
+
+
+%% fcn_INTERNAL_checkHandlePoints
+function hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints)
+% For the input types that use arrays of handles, set these up
+if any(strcmp(inputType,{'patch','directedpath','onesidedsegment'}))
+    if ~iscell(hPoints)
+        temp = hPoints;
+        hPoints = cell(2,1);
+        hPoints{1} = temp;
+        hPoints{2} = gobjects(0);
+    end
+end
+end % Ends fcn_INTERNAL_checkHandlePoints

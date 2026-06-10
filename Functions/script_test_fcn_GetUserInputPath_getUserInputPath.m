@@ -128,7 +128,7 @@ if 1==0
 	figure(figNum); clf;
 
 	startingXY = [];
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'path');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -196,7 +196,22 @@ if 1==0
 	assert(size(pathXY,2)==2);
 
     
- 	
+    %% DEMO case: explicit patch inputType with initial points
+	figNum = 10008;
+	titleString = sprintf('DEMO case: explicit path inputType with initial points');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	startingXY = [0 0; 0 1; 1 1];
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);    
+
 
  	%% DEMO case: patch inputType with fewer than 3 points
 	figNum = 10010;

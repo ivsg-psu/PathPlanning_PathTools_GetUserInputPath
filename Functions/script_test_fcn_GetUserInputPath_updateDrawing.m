@@ -15,7 +15,7 @@
 %   % * Using script_test_fcn_GetUserInputPath_ + getUserInputPath
 %   %   % as a starter
 % 
-% 2026_06_08 by Sean Brennan, sbrennan@psu.edu 
+% 2026_06_09 by Sean Brennan, sbrennan@psu.edu 
 % - In script_test_fcn_GetUserInputPath_updateDrawing
 %   % * Fixed bug found in non-empty data and patch input, case 20005
 %   % * Changed hLine output type to enable multiple handles and arrays of

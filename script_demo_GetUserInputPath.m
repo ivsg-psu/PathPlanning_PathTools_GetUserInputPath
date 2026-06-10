@@ -168,8 +168,29 @@
 %   % * Verified that 'onesidedsegment' supports multiple independent segments
 %   %   separated by right-click [NaN NaN] rows.
 %
+% 2026_06_08 by Sean Brennan, sbrennan@psu.edu
+% - In script_test_fcn_GetUserInputPath_updateDrawing
+%   % * Wrote the code originally 
+%   % * Using script_test_fcn_GetUserInputPath_ + getUserInputPath
+%   %   % as a starter
+% - In fcn_GetUserInputPath_updateDrawing
+%   % * Made this function starting with fcn_GetUserInputPath_ +
+%   %   % get+UserInputPa
+%
+% 2026_06_09 by Sean Brennan, sbrennan@psu.edu 
+% - In script_test_fcn_GetUserInputPath_updateDrawing
+%   % * Fixed bug found in non-empty data and patch input, case 20005
+%   % * Changed hLine output type to enable multiple handles and arrays of
+%   %   % handles, to cell type. Allows patch, quivers, etc.
+%   % * Added all test cases for regular and geoplotting
+%
 % 2026_06_09 by Sean Brennan, sbrennan@psu.edu
-
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Added calls to fcn_GetUserInputPath_updateDrawing
+%
+% 2026_06_09 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Quite a few bug fixes. Geoplot still not working.
 
 
 % TO-DO:

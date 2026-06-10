@@ -69,7 +69,7 @@ function hPoints = fcn_GetUserInputPath_updateDrawing(pathXY, varargin)
 % - In fcn_GetUserInputPath_updateDrawing
 %   % * Made this function starting with fcn_GetUserInputPath_ +
 %   %   % get+UserInputPath
-%
+
 
 % TO-DO:
 % - 2026_06_08 by Sean Brennan, sbrennan@psu.edu
