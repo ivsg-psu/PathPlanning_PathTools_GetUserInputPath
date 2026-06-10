@@ -530,65 +530,6 @@ hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (fig
 
 uiwait(figNum);    % block until uiresume or figure closed
 
-% function updateDrawing()
-% 	% Updates the drawing based on the selected inputType
-%
-% 	switch inputType
-% 		case 'path'
-% 			updateLineObject(hPoints, pathXY);
-%
-% 		case 'points'
-% 			updateLineObject(hPoints, pathXY);
-%
-%         case 'patch'
-% 	        % Keep NaN rows so right-click can separate different patches
-% 	        patchXY = pathXY;
-%
-% 	        % Show the clicked points/edges as an editable red line
-% 	        updateLineObject(hPoints, patchXY);
-%
-% 	        % Draw the filled patch separately underneath the editable line
-% 	        updatePatchObjects(patchXY);
-%
-% 		case 'aabb'
-% 			aabbXY = fcn_INTERNAL_buildaabbFromTwoPoints(pathXY);
-% 			updateLineObject(hPoints, aabbXY);
-%
-%             if size(aabbXY,1) >= 5
-% 				closedAreaXY = aabbXY(1:end-1,:);
-% 			else
-% 				closedAreaXY = [];
-%             end
-%
-%         case 'directedpath'
-% 			updateLineObject(hPoints, pathXY);
-% 			updateDirectedPathObjects(pathXY);
-%
-%         case 'onesidedsegment'
-%             oneSidedSegmentXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
-%             updateLineObject(hPoints, oneSidedSegmentXY);
-%             updateOneSidedSegmentObjects(oneSidedSegmentXY);
-%
-%         otherwise
-% 			error('Unknown inputType. Use path, points, patch, aabb, directedpath, or onesidedsegment.');
-% 	end
-%
-% 	drawnow;
-% end
-
-% function updateLineObject(hLine, displayXY)
-%     % Updates either a normal plot object or a geoplot object.
-%
-%     if isprop(hLine,'LatitudeData') && isprop(hLine,'LongitudeData')
-%         set(hLine, ...
-%             'LatitudeData', displayXY(:,1), ...
-%             'LongitudeData', displayXY(:,2));
-%     else
-%         set(hLine, ...
-%             'XData', displayXY(:,1), ...
-%             'YData', displayXY(:,2));
-%     end
-% end
 
     function currentPointXY = getCurrentPointXY(src,event) %#ok<INUSD>
         % Figure out which axis was called?
@@ -604,354 +545,7 @@ uiwait(figNum);    % block until uiresume or figure closed
         currentPointXY = currentPoint(1,1:2);
     end
 
-% function updatePatchObjects(patchXY)
-% 	% Deletes and redraws separate filled patch objects.
-% 	% Each subpath separated by [NaN NaN] becomes its own patch.
-%
-% 	% Delete old patch objects
-% 	if ~isempty(hPatchObjects)
-% 		for ith_patch = 1:length(hPatchObjects)
-% 			if isgraphics(hPatchObjects(ith_patch))
-% 				delete(hPatchObjects(ith_patch));
-% 			end
-% 		end
-% 	end
-%
-% 	hPatchObjects = gobjects(0);
-%
-% 	% Split into separate patch candidates
-% 	subPaths = fcn_INTERNAL_splitPathByNaNs(patchXY);
-%
-% 	for ith_subpath = 1:length(subPaths)
-%
-% 		thisPatchXY = subPaths{ith_subpath};
-%
-% 		% A patch needs at least 3 valid points
-%         if size(thisPatchXY,1) >= 3
-%
-%             if flag_isGeoPlot
-%     	        % GeographicAxes case.
-%     	        % pathXY/geoplot data are assumed to be [Latitude Longitude].
-%     	        latitudes  = thisPatchXY(:,1);
-%     	        longitudes = thisPatchXY(:,2);
-%
-%                 % Ensure the polygon is explicitly closed
-%                 if ~isequal([latitudes(1) longitudes(1)], [latitudes(end) longitudes(end)])
-%     	            latitudes  = [latitudes; latitudes(1)];
-%     	            longitudes = [longitudes; longitudes(1)];
-%                 end
-%
-%     	        % geopolyshape expects valid polygon topology. For outer boundaries,
-%     	        % clockwise vertex order is generally required.
-%     	        % Use longitude as X and latitude as Y for the signed area check.
-%     	        signedArea = 0.5 * sum( ...
-%     		        longitudes(1:end-1).*latitudes(2:end) - ...
-%     		        longitudes(2:end).*latitudes(1:end-1));
-%
-%     	        % Positive signed area means counter-clockwise, so reverse it
-%     	        if signedArea > 0
-%     		        latitudes  = flipud(latitudes);
-%     		        longitudes = flipud(longitudes);
-%     	        end
-%
-%     	        geoPatchShape = geopolyshape(latitudes, longitudes);
-%
-%     	        hPatchObjects(end+1) = geoplot(ax, geoPatchShape, ...
-%     		        'FaceColor','red', ...
-%     		        'FaceAlpha',0.2, ...
-%     		        'EdgeColor','red', ...
-%     		        'LineWidth',1.5, ...
-%     		        'HandleVisibility','off');
-%
-% 			else
-% 				% Normal XY axes case
-% 				hPatchObjects(end+1) = patch('XData',thisPatchXY(:,1), ...
-% 					'YData',thisPatchXY(:,2), ...
-% 					'FaceColor','red', ...
-% 					'FaceAlpha',0.2, ...
-% 					'EdgeColor','red', ...
-% 					'LineWidth',1.5, ...
-% 					'HitTest','off', ...
-% 					'PickableParts','none', ...
-% 					'HandleVisibility','off'); %#ok<AGROW>
-%             end
-%         end
-% 	end
-%
-% 	% Keep clicked points/line above filled patches
-%     if isgraphics(hPoints)
-% 		uistack(hPoints,'top');
-%     end
-% end
-%
-% function deleteQuiverObjects()
-% 	% Deletes old quiver objects used by directed path and one-sided segment modes.
-%
-% 	if ~isempty(hQuiverObjects)
-% 		for ith_quiver = 1:length(hQuiverObjects)
-% 			if isgraphics(hQuiverObjects(ith_quiver))
-% 				delete(hQuiverObjects(ith_quiver));
-% 			end
-% 		end
-% 	end
-%
-% 	hQuiverObjects = gobjects(0);
-% end
 
-% function updateDirectedPathObjects(directedPathXY)
-% 	% Draws arrows between consecutive valid points in directed path mode.
-% 	%
-% 	% In normal XY axes, arrows are drawn using quiver.
-% 	% In GeographicAxes, arrows are drawn manually using geoplot because
-% 	% quiver is not compatible with GeographicAxes in the same way.
-%
-% 	deleteQuiverObjects();
-%
-% 	subPaths = fcn_INTERNAL_splitPathByNaNs(directedPathXY);
-%
-% 	for ith_subpath = 1:length(subPaths)
-%
-% 		thisPathXY = subPaths{ith_subpath};
-%
-% 		if size(thisPathXY,1) >= 2
-%
-% 			if flag_isGeoPlot
-%
-% 				% GeographicAxes case.
-% 				% pathXY is assumed to be [Latitude Longitude].
-% 				for ith_segment = 1:(size(thisPathXY,1)-1)
-%
-% 					latStart = thisPathXY(ith_segment,1);
-% 					lonStart = thisPathXY(ith_segment,2);
-%
-% 					latEnd = thisPathXY(ith_segment+1,1);
-% 					lonEnd = thisPathXY(ith_segment+1,2);
-%
-% 					dLat = latEnd - latStart;
-% 					dLon = lonEnd - lonStart;
-%
-% 					segmentLength = hypot(dLat,dLon);
-%
-% 					if segmentLength <= 0
-% 						continue;
-% 					end
-%
-% 					% Unit direction vector in latitude/longitude space
-% 					unitLat = dLat/segmentLength;
-% 					unitLon = dLon/segmentLength;
-%
-% 					% Arrow head size, relative to segment length
-% 					arrowHeadLength = 0.25*segmentLength;
-% 					arrowHeadWidth  = 0.12*segmentLength;
-%
-% 					% Base point of the arrow head
-% 					latBase = latEnd - arrowHeadLength*unitLat;
-% 					lonBase = lonEnd - arrowHeadLength*unitLon;
-%
-% 					% Perpendicular vector
-% 					perpLat = -unitLon;
-% 					perpLon =  unitLat;
-%
-% 					% Arrow head left and right points
-% 					latLeft = latBase + arrowHeadWidth*perpLat;
-% 					lonLeft = lonBase + arrowHeadWidth*perpLon;
-%
-% 					latRight = latBase - arrowHeadWidth*perpLat;
-% 					lonRight = lonBase - arrowHeadWidth*perpLon;
-%
-% 					% Draw main arrow shaft
-% 					hQuiverObjects(end+1) = geoplot(ax, ...
-% 						[latStart latEnd], ...
-% 						[lonStart lonEnd], ...
-% 						'r-', ...
-% 						'LineWidth',1.5, ...
-% 						'HandleVisibility','off'); %#ok<AGROW>
-%
-% 					% Draw arrow head
-% 					hQuiverObjects(end+1) = geoplot(ax, ...
-% 						[latLeft latEnd latRight], ...
-% 						[lonLeft lonEnd lonRight], ...
-% 						'r-', ...
-% 						'LineWidth',1.5, ...
-% 						'HandleVisibility','off'); %#ok<AGROW>
-% 				end
-%
-% 			else
-%
-% 				% Normal XY axes case
-% 				xStart = thisPathXY(1:end-1,1);
-% 				yStart = thisPathXY(1:end-1,2);
-%
-% 				dx = thisPathXY(2:end,1) - thisPathXY(1:end-1,1);
-% 				dy = thisPathXY(2:end,2) - thisPathXY(1:end-1,2);
-%
-% 				hQuiverObjects(end+1) = quiver(ax, ...
-% 					xStart, yStart, dx, dy, ...
-% 					0, ...
-% 					'Color','r', ...
-% 					'LineWidth',1.5, ...
-% 					'MaxHeadSize',0.5, ...
-% 					'HandleVisibility','off'); %#ok<AGROW>
-% 			end
-% 		end
-% 	end
-%
-% 	if isgraphics(hPoints)
-% 		uistack(hPoints,'top');
-% 	end
-% end
-% function updateOneSidedSegmentObjects(segmentXY)
-%     % Draws a perpendicular arrow showing the positive side of each segment.
-%     % The positive side is the left side when moving from start point to end point.
-%
-%     deleteQuiverObjects();
-%
-%     subPaths = fcn_INTERNAL_splitPathByNaNs(segmentXY);
-%
-%     for ith_subpath = 1:length(subPaths)
-%
-%         thisSegmentXY = subPaths{ith_subpath};
-%
-%         if size(thisSegmentXY,1) < 2
-%             continue;
-%         end
-%
-%         pointStart = thisSegmentXY(1,:);
-%         pointEnd   = thisSegmentXY(2,:);
-%
-%         dx = pointEnd(1) - pointStart(1);
-%         dy = pointEnd(2) - pointStart(2);
-%
-%         segmentLength = hypot(dx,dy);
-%
-%         if segmentLength <= 0
-%             continue;
-%         end
-%
-%         midPoint = 0.5*(pointStart + pointEnd);
-%
-%         % Positive side: left side when moving from start to end
-%         normalVector = [-dy dx] ./ segmentLength;
-%
-%         arrowLength = 0.18 * segmentLength;
-%
-%         if flag_isGeoPlot
-%
-%             % GeographicAxes case.
-%             % pathXY is assumed to be [Latitude Longitude].
-%             % Work in local meter coordinates instead of raw lat/lon degrees.
-%
-%             latStart = pointStart(1);
-%             lonStart = pointStart(2);
-%
-%             latEnd = pointEnd(1);
-%             lonEnd = pointEnd(2);
-%
-%             latRef = 0.5*(latStart + latEnd);
-%
-%             metersPerDegLat = 111320;
-%             metersPerDegLon = 111320*cosd(latRef);
-%
-%             xStart_m = lonStart * metersPerDegLon;
-%             yStart_m = latStart * metersPerDegLat;
-%
-%             xEnd_m = lonEnd * metersPerDegLon;
-%             yEnd_m = latEnd * metersPerDegLat;
-%
-%             dx_m = xEnd_m - xStart_m;
-%             dy_m = yEnd_m - yStart_m;
-%
-%             segmentLength_m = hypot(dx_m,dy_m);
-%
-%             if segmentLength_m <= 0
-%                 continue;
-%             end
-%
-%             midX_m = 0.5*(xStart_m + xEnd_m);
-%             midY_m = 0.5*(yStart_m + yEnd_m);
-%
-%             % Positive side: left side when moving from start to end
-%             normalX_m = -dy_m/segmentLength_m;
-%             normalY_m =  dx_m/segmentLength_m;
-%
-%             % Side arrow length in meters
-%             arrowLength_m = 0.18 * segmentLength_m;
-%
-%             xArrowStart_m = midX_m;
-%             yArrowStart_m = midY_m;
-%
-%             xArrowEnd_m = midX_m + arrowLength_m*normalX_m;
-%             yArrowEnd_m = midY_m + arrowLength_m*normalY_m;
-%
-%             latStartArrow = yArrowStart_m / metersPerDegLat;
-%             lonStartArrow = xArrowStart_m / metersPerDegLon;
-%
-%             latEndArrow = yArrowEnd_m / metersPerDegLat;
-%             lonEndArrow = xArrowEnd_m / metersPerDegLon;
-%
-%             % Draw perpendicular side indicator shaft
-%             hQuiverObjects(end+1) = geoplot(ax, ...
-%                 [latStartArrow latEndArrow], ...
-%                 [lonStartArrow lonEndArrow], ...
-%                 'r-', ...
-%                 'LineWidth',4, ...
-%                 'HandleVisibility','off'); %#ok<AGROW>
-%
-%             % Arrow head in local meter coordinates
-%             headLength_m = 0.20 * arrowLength_m;
-%             headWidth_m  = 0.12 * arrowLength_m;
-%
-%             headTip_m  = [xArrowEnd_m yArrowEnd_m];
-%             headBase_m = headTip_m - headLength_m*[normalX_m normalY_m];
-%
-%             arrowPerp_m = [-normalY_m normalX_m];
-%
-%             headLeft_m  = headBase_m + headWidth_m*arrowPerp_m;
-%             headRight_m = headBase_m - headWidth_m*arrowPerp_m;
-%
-%             latHeadLeft  = headLeft_m(2) / metersPerDegLat;
-%             lonHeadLeft  = headLeft_m(1) / metersPerDegLon;
-%
-%             latHeadRight = headRight_m(2) / metersPerDegLat;
-%             lonHeadRight = headRight_m(1) / metersPerDegLon;
-%
-%             latHeadTip = headTip_m(2) / metersPerDegLat;
-%             lonHeadTip = headTip_m(1) / metersPerDegLon;
-%
-%             % Draw arrow head left side
-%             hQuiverObjects(end+1) = geoplot(ax, ...
-%                 [latHeadLeft latHeadTip], ...
-%                 [lonHeadLeft lonHeadTip], ...
-%                 'r-', ...
-%                 'LineWidth',4, ...
-%                 'HandleVisibility','off'); %#ok<AGROW>
-%
-%             % Draw arrow head right side
-%             hQuiverObjects(end+1) = geoplot(ax, ...
-%                 [latHeadRight latHeadTip], ...
-%                 [lonHeadRight lonHeadTip], ...
-%                 'r-', ...
-%                 'LineWidth',4, ...
-%                 'HandleVisibility','off'); %#ok<AGROW>
-%
-%         else
-%
-%             % Normal XY axes case
-%             hQuiverObjects(end+1) = quiver(ax, ...
-%                 midPoint(1), midPoint(2), ...
-%                 arrowLength*normalVector(1), arrowLength*normalVector(2), ...
-%                 0, ...
-%                 'Color','r', ...
-%                 'LineWidth',3, ...
-%                 'MaxHeadSize',1.5, ...
-%                 'HandleVisibility','off'); %#ok<AGROW>
-%         end
-%     end
-%
-%     if isgraphics(hPoints)
-%         uistack(hPoints,'top');
-%     end
-% end
     function legendItemClicked(~, event)
         s = getappdata(figNum,'HoldPanState');
         s.legendClicked = true;
@@ -1128,6 +722,10 @@ uiwait(figNum);    % block until uiresume or figure closed
             % Check for the input types that use arrays of handles
             if iscell(hPoints)
                 temp = hPoints{2};
+                for ith_handle = 1:length(temp)
+                    thisHandle = temp(ith_handle);
+                    delete(thisHandle);
+                end
                 delete(temp);
                 hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
                 fcn_GetUserInputPath_updateDrawing(pathXY,('path'), (hPoints{1}), (figNum));
@@ -1197,6 +795,10 @@ uiwait(figNum);    % block until uiresume or figure closed
                 else
                     pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,newPointXY);
                 end
+            
+                pathXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
+
+
 
             else
                 if all(isnan(pathXY),'all')
@@ -1210,7 +812,7 @@ uiwait(figNum);    % block until uiresume or figure closed
         end
 
         % For the input types that use arrays of handles, set these up
-        hPoints = fcn_INTERNAL_checkHandlePoints(inputType,hPoints);
+        hPoints = fcn_INTERNAL_checkHandlePoints(inputType, hPoints);
 
         % updateDrawing();
         hPoints = fcn_GetUserInputPath_updateDrawing(pathXY,(inputType), (hPoints), (figNum));
@@ -1275,6 +877,7 @@ uiwait(figNum);    % block until uiresume or figure closed
                     else
                         pathXY = fcn_INTERNAL_addPointToOneSidedSegmentPath(pathXY,currentPointXY);
                     end
+                    pathXY = fcn_INTERNAL_keepFirstTwoValidPointsPerSubPath(pathXY);
 
                 elseif strcmp(inputType,'points')
                     % In points mode there are no line segments, so append the point.

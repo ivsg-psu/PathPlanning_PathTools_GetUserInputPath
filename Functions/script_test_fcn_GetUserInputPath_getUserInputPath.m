@@ -401,12 +401,16 @@ if 1==0
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
 
-	fcn_plotRoad_plotLL([],[],(figNum));
-	set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+    fcn_plotRoad_plotLL([],[],(figNum));
+    set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
 
-    startingXY = [];
+    startingXY = [
+        40.79385 -77.8646
+        40.79375 -77.8643
+        40.79355 -77.864
+        ];
 
-	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'directedpath');
+    pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'directedpath');
 
 	% Check variable types
 	assert(isnumeric(pathXY));
@@ -424,7 +428,13 @@ if 1==0
 	fcn_plotRoad_plotLL([],[],(figNum));
 	set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
 
-	startingXY = [];
+    startingXY = [
+        40.79385 -77.8646
+        40.79375 -77.8643
+        40.79355 -77.864
+        ];
+
+    % startingXY = [];
 
 	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'onesidedsegment');
 
@@ -540,7 +550,19 @@ if 1==0
     fcn_plotRoad_plotLL([],[],(figNum));
     set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
 
-    startingXY = [];
+
+    startingXY = [
+        40.79385 -77.8646
+        40.79375 -77.8643
+        40.79355 -77.864
+        nan nan
+        40.79382 -77.8645
+        40.79381 -77.8643
+        40.79385 -77.8641
+
+        ];
+
+
     pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
 
     % sgtitle(titleString, 'Interpreter','none');
