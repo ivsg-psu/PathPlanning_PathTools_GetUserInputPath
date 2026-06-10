@@ -216,6 +216,10 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 % 2026_06_09 by Sean Brennan, sbrennan@psu.edu
 % - In fcn_GetUserInputPath_getUserInputPath
 %   % * Quite a few bug fixes. Geoplot still not working.
+%
+% 2026_06_10 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Fixed most of the bugs - some bugs still pop up but not repeatable
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu

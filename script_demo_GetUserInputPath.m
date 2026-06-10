@@ -177,6 +177,12 @@
 %   % * Made this function starting with fcn_GetUserInputPath_ +
 %   %   % get+UserInputPa
 %
+% 2026_06_08 by Sean Brennan, sbrennan@psu.edu
+% - In script_test_fcn_GetUserInputPath_updateDrawing
+%   % * Wrote the code originally 
+%   % * Using script_test_fcn_GetUserInputPath_ + getUserInputPath
+%   %   % as a starter
+% 
 % 2026_06_09 by Sean Brennan, sbrennan@psu.edu 
 % - In script_test_fcn_GetUserInputPath_updateDrawing
 %   % * Fixed bug found in non-empty data and patch input, case 20005
@@ -191,6 +197,17 @@
 % 2026_06_09 by Sean Brennan, sbrennan@psu.edu
 % - In fcn_GetUserInputPath_getUserInputPath
 %   % * Quite a few bug fixes. Geoplot still not working.
+%
+% 2026_06_10 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Fixed most of the bugs - some bugs still pop up but not repeatable
+%
+% 2026_06_10 by Sean Brennan, sbrennan@psu.edu
+%   % * Fixed bug in fcn_INTERNAL_updateLineObject where the handle wasn't
+%   %   % being deleted correctly for the secondary objects.
+%   % * Fixed bug in several functions where handle indexing was wrong.
+%
+% (new release)
 
 
 % TO-DO:
