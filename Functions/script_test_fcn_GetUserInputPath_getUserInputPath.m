@@ -64,9 +64,14 @@
 %   % * Updated directedpath demo case 10012 after fixing GeographicAxes
 %   %   point-dragging behavior. Previously, dragging an existing point on
 %   %   the map could break the plotted path.
-%   % * Updated onesidedsegment demo case 10014 after adding support for
+%   % * Updated onesidedsegment demo case 10004 after adding support for
 %   %   multiple independent one-sided segments separated by right-click
 %   %   [NaN NaN] rows.
+%
+% 2026_06_27 by Sean Brennan, sbrennan@psu.edu
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * Added Case 10014 to debug zoom in and zoom out bug in geoplotting
+%   % * Added Case 10016 to debug passing of plot with prior existing data
 
 % TO-DO:
 %
@@ -122,7 +127,7 @@ if 1==0
 	% assert(isequal(get(gcf,'Number'),figNum));
 
 	%% DEMO case: explicit path inputType
-	figNum = 10006;
+	figNum = 10002;
 	titleString = sprintf('DEMO case: explicit path inputType');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -139,7 +144,7 @@ if 1==0
 
    
  %% DEMO case: directedpath inputType in normal XY axes
-	figNum = 10011;
+	figNum = 10003;
 	titleString = sprintf('DEMO case: directedpath inputType in normal XY axes');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -160,7 +165,7 @@ if 1==0
 	assert(size(pathXY,2)==2);
 
     %% DEMO case: onesidedsegment inputType in normal XY axes
-	figNum = 10014;
+	figNum = 10004;
 	titleString = sprintf('DEMO case: onesidedsegment inputType in normal XY axes');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -180,7 +185,7 @@ if 1==0
 	assert(size(pathXY,2)==2);
 
     %% DEMO case: points inputType
-	figNum = 10007;
+	figNum = 10005;
 	titleString = sprintf('DEMO case: points inputType');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -197,7 +202,7 @@ if 1==0
 
     
     %% DEMO case: explicit patch inputType with initial points
-	figNum = 10008;
+	figNum = 10006;
 	titleString = sprintf('DEMO case: explicit path inputType with initial points');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -214,7 +219,7 @@ if 1==0
 
 
  	%% DEMO case: patch inputType with fewer than 3 points
-	figNum = 10010;
+	figNum = 10007;
 	titleString = sprintf('DEMO case: patch inputType with fewer than 3 points');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -235,7 +240,7 @@ if 1==0
 
 
 	%% DEMO case: starting with initial points
-	figNum = 10002;
+	figNum = 10008;
 	titleString = sprintf('DEMO case: starting with initial points');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -259,7 +264,7 @@ if 1==0
 	% assert(isequal(get(gcf,'Number'),figNum));
 
 	%% DEMO case: hello world
-	figNum = 10003;
+	figNum = 10009;
 	titleString = sprintf('DEMO case: hello world');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -369,7 +374,7 @@ if 1==0
 
 
 	%% DEMO case: testing with geoplot
-	figNum = 10004;
+	figNum = 10010;
 	titleString = sprintf('DEMO case: testing with geoplot');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -444,8 +449,33 @@ if 1==0
 	% Check variable sizes
 	assert(size(pathXY,1)>=1);
 	assert(size(pathXY,2)==2);
+
+	%% DEMO case: patch inputType with geoplot
+	figNum = 10014;
+	titleString = sprintf('DEMO case: patch inputType with geoplot');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	fcn_plotRoad_plotLL([],[],(figNum));
+	set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+	startingXY = [
+		40.79385 -77.8646
+		40.79375 -77.8643
+		40.79355 -77.864
+		];
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
+
 	%% DEMO case: testing with geoplot with previous data
-	figNum = 10005;
+	figNum = 10015;
 	titleString = sprintf('DEMO case: testing with geoplot with previous data');
 	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
 	figure(figNum); clf;
@@ -502,6 +532,36 @@ if 1==0
 	% % Make sure plot opened up
 	% assert(isequal(get(gcf,'Number'),figNum));
 
+	%% DEMO case: patch inputType with geoplot with previous data
+	figNum = 10016;
+	titleString = sprintf('DEMO case: patch inputType with geoplot with previous data');
+	fprintf(1,'Figure %.0f: %s\n',figNum, titleString);
+	figure(figNum); clf;
+
+	fcn_plotRoad_plotLL([],[],(figNum));
+	set(gca,'MapCenter',[40.793695059681355 -77.864213807810174],'ZoomLevel',20);
+
+	startingXY = [
+		40.79385 -77.8646
+		40.79375 -77.8643
+		40.79355 -77.864
+		];
+
+	plotFormat.MarkerSize = 50;
+	plotFormat.Color = [1 0.5 0.5];
+	plotFormat.Marker = '.';
+	plotFormat.LineStyle = 'none';
+
+	fcn_plotRoad_plotLL(startingXY,plotFormat,(figNum));
+
+	pathXY = fcn_GetUserInputPath_getUserInputPath((startingXY),(figNum),'patch');
+
+	% Check variable types
+	assert(isnumeric(pathXY));
+
+	% Check variable sizes
+	assert(size(pathXY,1)>=1);
+	assert(size(pathXY,2)==2);
 end
 
 %% Test cases start here. These are very simple, usually trivial

@@ -208,7 +208,20 @@
 %   % * Fixed bug in several functions where handle indexing was wrong.
 %
 % (new release)
-
+%
+% 2026_06_27 by Sean Brennan, sbrennan@psu.edu
+% - In script_test_fcn_GetUserInputPath_getUserInputPath
+%   % * Added Case 10014 to debug zoom in and zoom out bug in geoplotting
+%   % * Added Case 10016 to debug passing of plot with prior existing data
+% 2026_06_27 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Fixed zoom in and zoom out bug in geoplotting where clicking on the
+%   %   % zoom added a point and put the plot in "pan" mode
+%   % * Added test to see if plots already exist in the current figure.
+%   %   % If so, it does not close the figure but deletes the current plot
+%   %   % handles, thus allowing the user to draw on top of existing plo
+%
+% (new release)
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
