@@ -34,9 +34,13 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %                       the start point to the end point. Multiple segments
 %                       can be separated using right-click [nan nan] rows.
 %
+% Navigation keys:
+% 
 % If the user right-clicks, the function inserts a [nan nan] row, which
-% effectively creates a gap in the plotted path. If the user hits the
-% "minus" or hyphen key, it removes the most recent point.
+% effectively creates a gap in the plotted path. 
+% 
+% If the user hits the "minus" or hyphen key, it removes the most recent
+% point.
 %
 % As an optional input, the function can start with a startingXY point
 % list, plotting this first.
