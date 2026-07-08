@@ -232,6 +232,13 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %   % * Added test to see if plots already exist in the current figure.
 %   %   % If so, it does not close the figure but deletes the current plot
 %   %   % handles, thus allowing the user to draw on top of existing plot
+%
+% (new release)
+%
+% 2026_07_03 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Fixed bug where function handle calls being overwritten when
+%   %   % function is called from another function with handles.
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
@@ -318,7 +325,7 @@ if 2 <= nargin
 		% Check for children
 		temp = get(gca,'Children');
 		if length(temp)>1
-			flag_priorDataWasPlotted = 1;
+			flag_priorDataWasPlotted = true;
 		end
 
 	end
@@ -368,10 +375,25 @@ end
 
 h_fig = figure(figNum);
 
-% For debuggin
+% For debugging
 warning('backtrace','on');
 
 ax = gca;
+
+
+if flag_priorDataWasPlotted
+	% Save plotting handles that may be overwritten here
+	saved_hLegend = 2;
+
+	h_legend.ItemHitFcn
+	set(h_fig, ...
+		'WindowButtonDownFcn', @onClick, ...
+		'WindowKeyPressFcn', @onKey, ...
+		'WindowButtonMotionFcn', @onMouseMove, ...
+		'WindowButtonUpFcn',   @onButtonUp);
+
+end
+
 
 flag_isGeoPlot = isa(ax,'matlab.graphics.axis.GeographicAxes');
 
