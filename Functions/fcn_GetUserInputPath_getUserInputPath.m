@@ -39,11 +39,11 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 % If the user right-clicks, the function inserts a [nan nan] row, which
 % effectively creates a gap in the plotted path. 
 % 
-% If the user hits the "minus" or hyphen key, it removes the most recent
-% point.
+%   * If the user hits the "minus" or hyphen key, it removes the most recent
+%     point.
 %
-% As an optional input, the function can start with a startingXY point
-% list, plotting this first.
+% As an optional input, the function can start with a startingXY Nx2 or Nx3
+% point list, plotting this first.
 %
 % FORMAT:
 %
@@ -80,8 +80,7 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 %                                      positive/visible side. The positive
 %                                      side is the left side when moving
 %                                      from start point to end point.
-
-
+%
 % OUTPUTS:
 %      pathXY: matrix (Nx2) representing the X and Y points that the user
 %      clicked on the map.
@@ -239,6 +238,12 @@ function [pathXY, closedAreaXY] = fcn_GetUserInputPath_getUserInputPath(varargin
 % - In fcn_GetUserInputPath_getUserInputPath
 %   % * Fixed bug where function handle calls being overwritten when
 %   %   % function is called from another function with handles.
+%
+% 2026_07_08 by Sean Brennan, sbrennan@psu.edu
+% - In fcn_GetUserInputPath_getUserInputPath
+%   % * Minor edits to header comments
+%   % * Now saves Window function calls at start, restores them at end
+%   % * Now saves legend at start, restores it at end
 
 % TO-DO:
 % - 2026_02_12 by Sean Brennan, sbrennan@psu.edu
@@ -315,19 +320,11 @@ end
 % Does user want to specify the figure number?
 figNum = [];
 flag_do_plots = 1; % Default is to show plots
-flag_priorDataWasPlotted = 0; % No prior data exists
 if 2 <= nargin
 	temp = varargin{2};
 	if ~isempty(temp)
 		figNum = temp;
 		flag_do_plots = 1;
-
-		% Check for children
-		temp = get(gca,'Children');
-		if length(temp)>1
-			flag_priorDataWasPlotted = true;
-		end
-
 	end
 end
 
@@ -370,6 +367,9 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+
+
 % Controls whether path subpaths are visually closed by connecting
 % nearest free endpoints. This does not modify pathXY.
 
@@ -380,18 +380,32 @@ warning('backtrace','on');
 
 ax = gca;
 
+% Check for children
+flag_priorDataWasPlotted = 0; % No prior data exists
+temp = get(ax,'Children');
+if ~isempty(temp)
+    flag_priorDataWasPlotted = true;
+end
 
 if flag_priorDataWasPlotted
 	% Save plotting handles that may be overwritten here
-	saved_hLegend = 2;
+	h_legend = ax.Legend;
+    flagHasLegend = ~isempty(h_legend);
 
-	h_legend.ItemHitFcn
-	set(h_fig, ...
-		'WindowButtonDownFcn', @onClick, ...
-		'WindowKeyPressFcn', @onKey, ...
-		'WindowButtonMotionFcn', @onMouseMove, ...
-		'WindowButtonUpFcn',   @onButtonUp);
+    if flagHasLegend
 
+        % copy legend to a hidden figure as backup
+        backupFig = figure('Visible','off');
+        copiedLegend = copyobj(h_legend, backupFig);   % copied is the Legend in backupFig
+        axes(ax);    % set axis back to current one
+    end
+
+	copiedWindowButtonDownFcn = get(h_fig,'WindowButtonDownFcn');
+    copiedWindowKeyPressFcn = get(h_fig,'WindowKeyPressFcn'); 
+	copiedWindowButtonMotionFcn = get(h_fig,'WindowButtonMotionFcn'); 
+	copiedWindowButtonUpFcn = get(h_fig,'WindowButtonUpFcn'); 
+
+    
 end
 
 
@@ -1142,8 +1156,29 @@ if ishandle(figNum)
 	if ~flag_priorDataWasPlotted
 		close(figNum);
 	else
-		delete(hExitPatch);
-		legend('off');
+
+        % URHERE
+
+        % Delete the patch
+        delete(hExitPatch);
+
+        if flagHasLegend
+            % restore legend by copying back into original figure/axes
+            restored = copyobj(copiedLegend, h_fig);    % returns Legend in fig
+            % set parent to the original axes if needed
+            restored.Parent = ax;
+        else
+            if ~isempty(ax.Legend)
+                delete(ax.Legend);
+            end
+        end
+
+        % Restore Window functions
+        set(h_fig,'WindowButtonDownFcn', copiedWindowButtonDownFcn);
+        set(h_fig,'WindowKeyPressFcn', copiedWindowKeyPressFcn);
+    	set(h_fig,'WindowButtonMotionFcn', copiedWindowButtonMotionFcn);
+    	set(h_fig,'WindowButtonUpFcn', copiedWindowButtonUpFcn);
+
 		if iscell(hPoints)
 			for ith_value = 1:length(hPoints)
 				thisHandle = hPoints{ith_value};
